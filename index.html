@@ -1,0 +1,2009 @@
+
+HTML
+ <!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barbechos - Sistema de Gestión Agrícola</title>
+  
+  <!-- Librería de Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- ACA EMPIEZA EL CÓDIGO DE LA APP (PWA) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#28a745">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((reg) => console.log('Service Worker registrado con éxito', reg))
+          .catch((err) => console.log('Error al registrar Service Worker', err));
+      });
+    }
+  </script>
+  <!-- ACA TERMINA EL CÓDIGO DE LA APP -->
+
+  <style>
+    /* --- ESTILOS EXCLUSIVOS PARA IMPRESIÓN --- */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #comprobanteContainer, #comprobanteContainer * {
+        visibility: visible;
+      }
+      #comprobanteContainer {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none; 
+      }
+      #comprobanteContainer button {
+        display: none !important;
+      }
+    }
+    
+    /* Login & Menu Estilos */
+    .login-box { max-width: 400px; margin: 50px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+    .login-box h2 { color: #2e7d32; margin-bottom: 20px; }
+    .menu-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 20px; }
+    .menu-card { display: flex; align-items: center; padding: 20px; background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-align: left; }
+    .menu-card:hover { border-color: #28a745; background: #e8f5e9; transform: translateY(-2px); }
+    .menu-card .icon { font-size: 28px; margin-right: 20px; }
+    .menu-card .title { font-size: 18px; font-weight: bold; color: #1e3c72; }
+    .app-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+    .btn-logout { background-color: #dc3545; font-size: 12px; padding: 6px 12px; }
+    .btn-back { background-color: #6c757d; font-size: 13px; padding: 8px 14px; margin-bottom: 15px; }
+
+    /* Estilos Originales de la App */
+    h2, h3 { color: #1e3c72; margin-top: 0; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+    select, input, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+    select[multiple] { height: 110px; }
+    .help-text { font-size: 11px; color: #666; margin-top: 3px; }
+    button { background-color: #28a745; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 15px; font-weight: bold; }
+    button:hover { background-color: #218838; }
+    .btn-report { background-color: #007bff; margin-right: 5px; margin-bottom: 10px; font-size: 13px; padding: 8px 12px; border: none; color: white; border-radius: 4px; cursor: pointer; }
+    .btn-report:hover { background-color: #0056b3; }
+    .btn-export { background-color: #17a2b8; font-size: 13px; padding: 8px 12px; border: none; color: white; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+    .btn-export:hover { background-color: #117a8b; }
+    
+    /* Caja de Insumos */
+    .insumos-box { background: #f8f9fa; border: 2px dashed #007bff; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
+    .insumo-input-row { display: grid; grid-template-columns: 5fr 1.2fr auto auto; gap: 12px; align-items: end; }
+.insumo-input-row > div:first-child { width: 100%; }
+
+@media (max-width: 768px) {
+  .insumo-input-row { grid-template-columns: 1fr; }
+}
+    .btn-add-insumo { background-color: #ffc107; color: #333; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; height: 35px; }
+    .btn-new-insumo { background-color: #6c757d; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; height: 35px; font-weight: bold; }
+    .lista-insumos { list-style: none; padding: 0; margin-top: 10px; }
+    .lista-insumos li { background: #fff; border: 1px solid #ddd; padding: 8px 12px; margin-bottom: 5px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+    .btn-del-item { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+    
+    /* Comprobante de Orden */
+    .comprobante-card { background: #eef6ff; border: 2px solid #007bff; padding: 20px; border-radius: 8px; margin-top: 20px; margin-bottom: 25px; }
+    .btn-print-order { background-color: #17a2b8; color: white; font-size: 15px; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-ver-orden { background-color: #6c757d; font-size: 12px; padding: 5px 10px; color: white; border: none; border-radius: 3px; cursor: pointer; }
+    
+    /* Modal para Nuevo Insumo */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+    .modal-content { background-color: #fff; margin: 10% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 450px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    .modal-footer { text-align: right; margin-top: 15px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #e9ecef; color: #495057; }
+    tr:nth-child(even) { background-color: #f8f9fa; }
+    .section-box { background: #fafafa; border: 1px solid #e0e0e0; padding: 15px; border-radius: 6px; margin-top: 15px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- 1. PANTALLA DE LOGIN -->
+  <div id="login-screen" class="login-box">
+    <h2>Barbechos</h2>
+    <p style="font-size: 13px; color: #666; margin-bottom: 20px;">Ingrese con sus credenciales</p>
+    <div class="form-group" style="text-align: left;">
+      <label>Correo Electrónico:</label>
+      <input type="email" id="login-email" placeholder="usuario@barbechos.com">
+    </div>
+    <div class="form-group" style="text-align: left;">
+      <label>Contraseña:</label>
+      <input type="password" id="login-password" placeholder="••••••••">
+    </div>
+    <button onclick="realizarLogin()" style="width: 100%;">Iniciar Sesión</button>
+    <div id="login-error" style="color: #dc3545; font-size: 13px; margin-top: 10px;"></div>
+  </div>
+
+  <!-- 2. MENÚ PRINCIPAL (DASHBOARD) -->
+  <div id="menu-screen" class="container hidden">
+    <div class="app-header">
+      <div>
+        <h2 style="margin: 0;">Barbechos - Menú Principal</h2>
+        <span id="user-display" style="font-size: 12px; color: #666;"></span>
+      </div>
+      <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
+    </div>
+    <p style="color: #555;">Seleccione una opción para comenzar:</p>
+    
+    <div class="menu-grid">
+      <div class="menu-card" onclick="mostrarSeccion('carga-ordenes')">
+        <span class="icon">📥</span>
+        <div>
+          <div class="title">Carga de Órdenes</div>
+          <div style="font-size: 13px; color: #666;">Crear y emitir nuevas órdenes de trabajo agrícola.</div>
+        </div>
+      </div>
+      <div class="menu-card" onclick="mostrarSeccion('consulta-ordenes')">
+        <span class="icon">🔍</span>
+        <div>
+          <div class="title">Consulta de Órdenes</div>
+          <div style="font-size: 13px; color: #666;">Ver historial, buscar y reimprimir órdenes anteriores.</div>
+        </div>
+      </div>
+      <div class="menu-card" onclick="mostrarSeccion('galpon')">
+        <span class="icon">📦</span>
+        <div>
+          <div class="title">Galpón y Stock por Campo</div>
+          <div style="font-size: 13px; color: #666;">Consultar inventario disponible y ajustar cantidades/precios en USD.</div>
+        </div>
+      </div>
+      <div class="menu-card" onclick="mostrarSeccion('plan-siembras')">
+        <span class="icon">🌱</span>
+        <div>
+          <div class="title">Carga de Plan de Siembras</div>
+          <div style="font-size: 13px; color: #666;">Asignación de cultivos, campañas y superficies por lote.</div>
+        </div>
+      </div>
+      <div class="menu-card" onclick="mostrarSeccion('alta-campos')">
+        <span class="icon">📍</span>
+        <div>
+          <div class="title">Alta de Campos y Lotes</div>
+          <div style="font-size: 13px; color: #666;">Registrar nuevos establecimientos, lotes, labores e insumos.</div>
+        </div>
+      </div>
+      <div class="menu-card" onclick="mostrarSeccion('reportes')">
+        <span class="icon">📊</span>
+        <div>
+          <div class="title">Reportes</div>
+          <div style="font-size: 13px; color: #666;">Generar reportes y consumo de insumos consolidados.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. CONTENEDOR DE SECCIONES (CON BOTÓN DE VOLVER) -->
+  <div id="app-content-screen" class="container hidden">
+    <button class="btn-back" onclick="volverAlMenu()">← Volver al Menú Principal</button>
+    
+    <!-- SECCIÓN A: CARGA DE ÓRDENES -->
+    <div id="sec-carga-ordenes" class="seccion-app">
+      <h2>Carga de Orden de Trabajo</h2>
+      <form id="ordenForm">
+        
+        <!-- SELECTOR DE CAMPAÑA -->
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="orden_campana">Campaña:</label>
+            <input type="text" id="orden_campana" list="lista_campanas" value="2026-2027" required placeholder="Ej: 2026-2027">
+            <datalist id="lista_campanas">
+              <option value="2025-2026"></option>
+              <option value="2026-2027"></option>
+              <option value="2027-2028"></option>
+              <option value="2028-2029"></option>
+            </datalist>
+            <div class="help-text">Selecciona de la lista o escribe una nueva.</div>
+          </div>
+          <div class="form-group">
+            <label for="fecha">Fecha de Aplicación / Trabajo:</label>
+            <input type="date" id="fecha" name="fecha" required>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="campo_select">Establecimiento:</label>
+            <select id="campo_select" name="campo_id" required><option value="">Cargando establecimientos...</option></select>
+          </div>
+          <div class="form-group">
+            <label for="lote_select">Lote(s):</label>
+            <select id="lote_select" name="lote_id" multiple required onchange="calcularSuperficieTotal()" oninput="calcularSuperficieTotal()"><option value="">Primero seleccione un establecimiento...</option></select>
+            <div class="help-text">Mantén presionado <strong>Ctrl</strong> (o toca en móviles) para seleccionar varios lotes.</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="cultivo_select">Cultivo Destino:</label>
+            <select id="cultivo_select" name="cultivo_id" required><option value="">Seleccione cultivo...</option></select>
+            <div class="help-text" id="cultivo_status_text">Sugerido por plan o selección manual obligatoria.</div>
+          </div>
+          <div class="form-group">
+            <label for="labor_select">Labor:</label>
+            <select id="labor_select" name="labor_id" required><option value="">Seleccione labor...</option></select>
+          </div>
+        </div>
+        
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="superficie_ha">Superficie Trabajada Total (ha):</label>
+            <input type="number" step="0.01" id="superficie_ha" name="superficie_ha" placeholder="Se autocompleta con los lotes" required>
+            <div class="help-text">Editable si trabajas una superficie menor.</div>
+          </div>
+          <!-- Estado de Facturación -->
+          <div class="form-group">
+            <label for="estado_facturacion_select">Estado de Facturación:</label>
+            <select id="estado_facturacion_select">
+              <option value="Pendiente">Pendiente (Por revisar/conciliar)</option>
+              <option value="Facturada">Facturada (Servicio ya facturado)</option>
+              <option value="Propia">Propia (Maquinaria o equipo propio)</option>
+            </select>
+            <div class="help-text">Indica la condición contable de la labor.</div>
+          </div>
+        </div>
+        
+        <!-- CAJA DE INSUMOS -->
+        <div class="insumos-box">
+          <label style="font-size: 15px; font-weight: bold; margin-bottom: 10px; display: block; color: #007bff;">Insumos y Dosis de la Orden:</label>
+          <div class="insumo-input-row">
+            <div>
+              <label for="insumo_temp_input" style="font-size: 13px;">Escriba o Seleccione Insumo:</label>
+              <input type="text" id="insumo_temp_input" list="insumos_datalist" placeholder="Escriba para buscar..." autocomplete="off">
+              <datalist id="insumos_datalist"></datalist>
+            </div>
+            <div>
+              <label for="dosis_temp_input" style="font-size: 13px;">Dosis (por ha):</label>
+              <input type="number" step="0.01" id="dosis_temp_input" placeholder="Ej: 2.5">
+            </div>
+            <div>
+              <button type="button" class="btn-add-insumo" onclick="agregarInsumoALista()">+ Agregar</button>
+            </div>
+            <div>
+              <button type="button" class="btn-new-insumo" onclick="abrirModalNuevoInsumo()">+ Crear Insumo</button>
+            </div>
+          </div>
+          <div style="margin-top: 15px;">
+            <label style="font-size: 13px; font-weight: bold; color: #555;">Productos agregados a esta orden:</label>
+            <ul id="listaInsumosCargados" class="lista-insumos">
+              <li style="color: #888; font-style: italic; justify-content: center;">No hay insumos agregados todavía.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="observaciones">Observaciones:</label>
+          <textarea id="observaciones" name="observaciones" rows="2"></textarea>
+        </div>
+        <button type="submit" style="width: 100%;">Generar y Guardar Orden de Trabajo</button>
+      </form>
+    </div>
+
+    <!-- SECCIÓN B: CONSULTA DE ÓRDENES -->
+    <div id="sec-consulta-ordenes" class="seccion-app hidden">
+      <h2>Consulta de Órdenes Anteriores</h2>
+      <div class="grid-2" style="margin-bottom: 15px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="filtro_historial_campana" style="font-size: 13px;">Campaña:</label>
+          <input type="text" id="filtro_historial_campana" list="lista_campanas_historial" value="2026-2027" placeholder="TODAS" onchange="cargarHistorialParaImprimir()">
+          <datalist id="lista_campanas_historial">
+            <option value="TODAS"></option>
+            <option value="2025-2026"></option>
+            <option value="2026-2027"></option>
+            <option value="2027-2028"></option>
+          </datalist>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="filtro_historial_campo" style="font-size: 13px;">Filtrar por Campo:</label>
+          <select id="filtro_historial_campo" onchange="cargarHistorialParaImprimir()"><option value="">Todos los campos</option></select>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e0e0e0;">
+        <div style="flex: 1; min-width: 130px;">
+          <label for="filtro_historial_desde" style="font-size: 12px; display: block; font-weight: bold; margin-bottom: 3px;">Desde:</label>
+          <input type="date" id="filtro_historial_desde" onchange="cargarHistorialParaImprimir()" style="padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px;">
+        </div>
+        <div style="flex: 1; min-width: 130px;">
+          <label for="filtro_historial_hasta" style="font-size: 12px; display: block; font-weight: bold; margin-bottom: 3px;">Hasta:</label>
+          <input type="date" id="filtro_historial_hasta" onchange="cargarHistorialParaImprimir()" style="padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px;">
+        </div>
+        <div style="flex: 1; min-width: 150px;">
+          <label for="filtro_historial_facturacion" style="font-size: 12px; display: block; font-weight: bold; margin-bottom: 3px;">Facturación:</label>
+          <select id="filtro_historial_facturacion" onchange="cargarHistorialParaImprimir()" style="padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px;">
+            <option value="">Todas</option>
+            <option value="Pendiente">Pendientes</option>
+            <option value="Facturada">Facturadas</option>
+            <option value="Propia">Propias</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="historialOrdenesContainer" style="overflow-x: auto;"><p>Cargando órdenes...</p></div>
+    </div>
+
+    <!-- SECCIÓN C: GALPÓN, COMPRAS Y GESTIÓN DE STOCK -->
+    <div id="sec-galpon" class="seccion-app hidden">
+      <h2>📦 Galpón, Compras e Inventario de Insumos</h2>
+
+      <!-- SELECCIÓN DE CAMPO Y CAMPAÑA DE TRABAJO -->
+      <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; background: #eef6ff; padding: 15px; border-radius: 8px; border: 1px solid #007bff; align-items: center;">
+        <div>
+          <label for="galpon_campo_select" style="font-weight: bold; font-size: 13px;">Establecimiento:</label>
+          <select id="galpon_campo_select" style="padding: 8px; font-size: 13px; min-width: 220px;" onchange="actualizarVistaGalpon()">
+            <option value="">Seleccione un establecimiento...</option>
+          </select>
+        </div>
+        <div>
+          <label for="galpon_campana_select" style="font-weight: bold; font-size: 13px;">Campaña:</label>
+          <input type="text" id="galpon_campana_select" list="lista_campanas_galpon" value="2026-2027" style="padding: 8px; font-size: 13px; width: 140px;" onchange="actualizarVistaGalpon()">
+          <datalist id="lista_campanas_galpon">
+            <option value="2025-2026"></option>
+            <option value="2026-2027"></option>
+            <option value="2027-2028"></option>
+          </datalist>
+        </div>
+      </div>
+
+      <!-- FORMULARIO DE REGISTRO SECUENCIAL DE COMPRAS -->
+      <div class="section-box" style="border: 2px solid #28a745; background: #f8fff9; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+        <h3 style="color: #28a745; margin-top: 0;">🛒 Registrar Nueva Compra / Ingreso de Insumo</h3>
+        
+        <form id="formCompraInsumo" onsubmit="registrarCompraInsumo(event)">
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="compra_fecha">Fecha de Remito / Factura:</label>
+              <input type="date" id="compra_fecha" required>
+            </div>
+            <div class="form-group">
+              <label for="compra_proveedor">Proveedor / Origen:</label>
+              <input type="text" id="compra_proveedor" placeholder="Ej: ACA, Syngenta, Distribuidora Local" required>
+            </div>
+          </div>
+
+          <div class="insumos-box" style="border-color: #28a745; background: #fff;">
+            <div class="insumo-input-row">
+              <div style="grid-column: span 2;">
+                <label for="compra_insumo_input" style="font-size: 13px;">Escriba o Seleccione Insumo:</label>
+                <input type="text" id="compra_insumo_input" list="insumos_datalist" placeholder="Buscar insumo en catálogo..." autocomplete="off" required>
+              </div>
+              <div>
+                <label for="compra_cantidad" style="font-size: 13px;">Cantidad Comprada:</label>
+                <input type="number" step="0.01" id="compra_cantidad" placeholder="Ej: 500" required>
+              </div>
+              <div>
+                <label for="compra_precio_usd" style="font-size: 13px;">Precio Unit. (USD):</label>
+                <input type="number" step="0.01" id="compra_precio_usd" placeholder="Ej: 4.80" required>
+              </div>
+            </div>
+            <div style="margin-top: 10px; text-align: right;">
+              <button type="button" class="btn-new-insumo" onclick="abrirModalNuevoInsumo()">+ Crear Insumo Nuevo</button>
+            </div>
+          </div>
+
+          <button type="submit" style="background-color: #28a745; width: 100%; font-size: 16px;">💾 Registrar Compra e Incrementar Stock</button>
+        </form>
+      </div>
+
+      <!-- HISTORIAL DE COMPRAS REGISTRADAS -->
+      <div class="section-box" style="margin-bottom: 30px;">
+        <h4 style="color: #1e3c72; margin-top: 0;">📋 Historial de Compras de la Campaña</h4>
+        <div id="historialComprasContainer" style="overflow-x: auto;">
+          <p style="color: #888; font-style: italic;">Seleccione un campo para consultar las compras realizadas.</p>
+        </div>
+      </div>
+
+      <!-- AUDITORÍA Y FILTROS DE STOCK (POR TIPO, SALDO Y BUSCADOR) -->
+      <div class="section-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+          <h4 style="color: #1e3c72; margin: 0;">🔎 Inventario Físico de Galpón (Ajustes y Saldos)</h4>
+          
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <!-- FILTRO POR TIPO DE INSUMO -->
+            <select id="galpon_filtro_tipo" onchange="filtrarTablaGalpon()" style="padding: 6px; border: 1px solid #007bff; border-radius: 4px; font-size: 13px; min-width: 160px;">
+              <option value="">Todos los Tipos</option>
+            </select>
+
+            <!-- FILTRO POR SALDO DE STOCK (MAYOR O MENOR A CERO) -->
+            <select id="galpon_filtro_stock" onchange="filtrarTablaGalpon()" style="padding: 6px; border: 1px solid #28a745; border-radius: 4px; font-size: 13px; min-width: 170px;">
+              <option value="">Todos los Saldos</option>
+              <option value="mayor">Stock Mayor a 0 (> 0)</option>
+              <option value="menor">Stock Menor a 0 (< 0)</option>
+            </select>
+
+            <!-- BUSCADOR POR TEXTO -->
+            <input type="text" id="buscador_galpon" placeholder="🔍 Buscar por nombre..." onkeyup="filtrarTablaGalpon()" style="max-width: 200px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
+          </div>
+        </div>
+
+        <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Consulte el stock real consolidado o ajuste las cantidades base y precios unitarios.</p>
+
+        <div id="galponTablaContainer" style="overflow-x: auto;">
+          <p style="color: #888; font-style: italic;">Seleccione un campo para ver la planilla de inventario.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN D: PLAN DE SIEMBRAS -->
+    <div id="sec-plan-siembras" class="seccion-app hidden">
+      <h2>Plan de Siembra / Asignación de Cultivos por Lote</h2>
+      <form id="planSiembraForm">
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="plan_campo_select">Campo:</label>
+            <select id="plan_campo_select" required><option value="">Seleccione campo...</option></select>
+          </div>
+          <div class="form-group">
+            <label for="plan_lote_select">Lote:</label>
+            <select id="plan_lote_select" required><option value="">Primero seleccione un campo...</option></select>
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="form-group">
+            <label for="plan_cultivo_select">Cultivo:</label>
+            <select id="plan_cultivo_select" required><option value="">Seleccione cultivo...</option></select>
+          </div>
+          <div class="form-group">
+            <label for="plan_superficie_ha">Superficie (ha):</label>
+            <input type="number" step="0.01" id="plan_superficie_ha" placeholder="Ej: 50" required>
+          </div>
+          <div class="form-group">
+            <label for="plan_campana">Campaña:</label>
+            <input type="text" id="plan_campana" placeholder="Ej: 2026-2027" value="2026-2027" required>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="plan_fecha_desde">Fecha Inicio (Desde):</label>
+            <input type="date" id="plan_fecha_desde" required>
+          </div>
+          <div class="form-group">
+            <label for="plan_fecha_hasta">Fecha Fin (Hasta):</label>
+            <input type="date" id="plan_fecha_hasta" required>
+          </div>
+        </div>
+        <button type="submit" style="background-color: #17a2b8; width: auto; font-size: 14px; padding: 8px 16px;">Guardar en Plan de Siembra</button>
+      </form>
+
+      <div style="margin: 20px 0 10px 0; display: flex; align-items: center; gap: 10px;">
+        <label for="filtro_plan_campo" style="font-weight: bold; white-space: nowrap;">Filtrar por Campo:</label>
+        <select id="filtro_plan_campo" onchange="cargarTablaPlanSiembra()" style="width: 100%; max-width: 320px; padding: 8px;">
+          <option value="">Todos los campos</option>
+        </select>
+      </div>    
+      <div id="planSiembraTablaContainer" style="margin-top: 15px;"></div>
+    </div>
+
+    <!-- SECCIÓN E: ALTA DE CAMPOS Y LOTES -->
+    <div id="sec-alta-campos" class="seccion-app hidden">
+      <h2>Alta Rápida de Datos</h2>
+      <div class="grid-2">
+        <div class="section-box">
+          <h4>Nuevo Campo / Establecimiento</h4>
+          <input type="text" id="nuevo_campo_nombre" placeholder="Nombre del campo" style="margin-bottom: 10px;">
+          <button type="button" style="background-color: #17a2b8; font-size: 13px; padding: 8px 12px;" onclick="crearCampoRapido()">Guardar Campo</button>
+        </div>
+        <div class="section-box">
+          <h4>Nuevo Lote</h4>
+          <select id="lote_nuevo_campo_select" style="margin-bottom: 8px;"><option value="">Seleccione campo...</option></select>
+          <input type="text" id="nuevo_lote_nombre" placeholder="Nombre del lote" style="margin-bottom: 8px;">
+          <input type="number" step="0.01" id="nuevo_lote_sup" placeholder="Superficie en ha" style="margin-bottom: 8px;">
+          <button type="button" style="background-color: #17a2b8; font-size: 13px; padding: 8px 12px;" onclick="crearLoteRapido()">Guardar Lote</button>
+        </div>
+        <div class="section-box">
+          <h4>Nueva Labor</h4>
+          <input type="text" id="nueva_labor_nombre" placeholder="Nombre de la labor" style="margin-bottom: 8px;">
+          <select id="nueva_labor_requiere_insumos" style="margin-bottom: 10px;">
+            <option value="true">Sí requiere insumos (Ej: Pulverización, Fertilización)</option>
+            <option value="false">No requiere insumos (Ej: Cosecha, Siembra, Desmalezado)</option>
+          </select>
+          <button type="button" style="background-color: #17a2b8; font-size: 13px; padding: 8px 12px;" onclick="crearLaborRapida()">Guardar Labor</button>
+        </div>
+        <div class="section-box">
+          <h4>Nuevo Cultivo</h4>
+          <input type="text" id="nuevo_cultivo_nombre" placeholder="Nombre del cultivo" style="margin-bottom: 10px;">
+          <button type="button" style="background-color: #17a2b8; font-size: 13px; padding: 8px 12px;" onclick="crearCultivoRapido()">Guardar Cultivo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN F: REPORTES, INVENTARIO Y ANÁLISIS DE COSTOS -->
+    <div id="sec-reportes" class="seccion-app hidden">
+      <h2>📊 Reportes, Inventario y Análisis de Costos</h2>
+
+      <!-- FILTROS GENERALES DE REPORTES -->
+      <div class="section-box" style="background: #f4f6f9; border: 1px solid #dcdfe6; margin-bottom: 20px;">
+        <h4 style="margin-top:0; color:#1e3c72;">🔍 Filtros de Búsqueda para Reportes</h4>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+          <div>
+            <label for="filtro_campana" style="font-weight: bold; font-size: 13px;">Campaña:</label><br>
+            <select id="filtro_campana" style="padding: 6px; font-size: 13px; min-width: 140px;">
+              <option value="TODAS">Todas las Campañas</option>
+              <option value="2025-2026">2025-2026</option>
+              <option value="2026-2027" selected>2026-2027</option>
+              <option value="2027-2028">2027-2028</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="filtro_reporte_campo" style="font-weight: bold; font-size: 13px;">Establecimiento:</label><br>
+            <select id="filtro_reporte_campo" style="padding: 6px; font-size: 13px; min-width: 180px;">
+              <option value="">Todos los campos</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="filtro_reporte_lote" style="font-weight: bold; font-size: 13px;">Lote:</label><br>
+            <select id="filtro_reporte_lote" style="padding: 6px; font-size: 13px; min-width: 160px;">
+              <option value="">Todos los lotes</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="filtro_reporte_cultivo" style="font-weight: bold; font-size: 13px;">Cultivo:</label><br>
+            <select id="filtro_reporte_cultivo" style="padding: 6px; font-size: 13px; min-width: 160px;">
+              <option value="">Todos los cultivos</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTONES DE TIPOS DE REPORTES -->
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+        <button type="button" class="btn-reporte" style="background:#1e3c72; color:white; padding:10px 14px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;" onclick="generarReporte('campo')">🌱 Consumo por Campo</button>
+        <button type="button" class="btn-reporte" style="background:#1e3c72; color:white; padding:10px 14px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;" onclick="generarReporte('cultivo')">🌾 Consumo por Cultivo</button>
+        <button type="button" class="btn-reporte" style="background:#1e3c72; color:white; padding:10px 14px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;" onclick="generarReporte('lote')">📍 Consumo por Lote</button>
+        <button type="button" class="btn-reporte" style="background:#1e3c72; color:white; padding:10px 14px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;" onclick="generarReporte('resumen_lotes')">📑 Resumen Órdenes por Lote</button>
+        <button type="button" class="btn-reporte" style="background:#17a2b8; color:white; padding:10px 14px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;" onclick="generarReporte('superficie_cultivo_labor')">🚜 Superficie por Cultivo/Labor</button>
+        <button type="button" class="btn-reporte" style="background:#28a745; color:white; padding:10px 14px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;" onclick="generarReporte('stock_campo')">📦 Stock e Inventario Valorizado (USD)</button>
+        <button type="button" class="btn-reporte" style="background:#6f42c1; color:white; padding:10px 14px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;" onclick="generarReporte('movimientos')">🔄 Kardex Movimientos (Altas y Bajas)</button>
+        <button type="button" class="btn-reporte" style="background:#fd7e14; color:white; padding:10px 14px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;" onclick="generarReporte('costos_cultivo')">💵 Costos por Cultivo y Campaña (USD/ha)</button>
+      </div>
+
+      <!-- BOTÓN EXPORTAR CSV -->
+      <div id="exportButtons" style="display: none; margin-bottom: 15px;">
+        <button type="button" onclick="exportarCSV()" style="background:#20c997; color:white; border:none; padding:8px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">📥 Exportar Reporte a CSV / Excel</button>
+      </div>
+
+      <!-- CONTENEDOR DE RESULTADOS -->
+      <div id="reporteResultados" style="overflow-x: auto; background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; min-height: 150px;">
+        <p style="color: #888; font-style: italic;">Seleccione una opción arriba para consultar el reporte correspondiente.</p>
+      </div>
+    </div>
+
+ <!-- COMPROBANTE GLOBAL ÚNICO PARA CARGA Y CONSULTA -->
+    <div id="comprobanteContainer" style="display: none; margin-top: 25px; border-top: 3px solid #dee2e6; padding-top: 20px;">
+      <div id="comprobantePrintArea" class="comprobante-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 15px;">
+          <div>
+            <h2 id="comp_numero_titulo" style="margin: 0; color: #007bff;">ORDEN DE TRABAJO AGRÍCOLA</h2>
+            <span id="comp_fecha" style="font-weight: bold; color: #555;"></span>
+          </div>
+          <div>
+            <button class="btn-print-order" onclick="imprimirComprobante()">🖨️ Imprimir / Guardar PDF</button>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-bottom: 15px; font-size: 14px;">
+          <div><strong>Establecimiento:</strong> <span id="comp_campo"></span></div>
+          <div><strong>Lotes Involucrados:</strong> <span id="comp_lotes"></span></div>
+          <div><strong>Cultivo Destino:</strong> <span id="comp_cultivo"></span></div>
+          <div><strong>Labor:</strong> <span id="comp_labor"></span></div>
+          <div><strong>Superficie Total Trabajada:</strong> <span id="comp_superficie"></span> ha</div>
+        </div>
+        <h4 style="margin-bottom: 8px; color: #333;">Receta de Insumos y Dosis Aplicadas:</h4>
+        <table style="width: 100%; margin-bottom: 15px;">
+          <thead><tr><th>Insumo</th><th>Dosis por ha</th><th>Consumo Total Estimado</th></tr></thead>
+          <tbody id="comp_tabla_insumos"></tbody>
+        </table>
+        <div style="font-size: 13px; color: #444;">
+          <strong>Observaciones:</strong> <span id="comp_observaciones">Sin observaciones.</span>
+        </div>
+      </div>
+    </div>
+
+  </div> <!-- CIERRE ÚNICO DE #app-content-screen -->
+
+  <!-- MODAL PARA NUEVO INSUMO -->
+  <div id="modalNuevoInsumo" class="modal">
+    <div class="modal-content">
+      <h3 style="margin-top: 0; color: #007bff;">Agregar Nuevo Insumo</h3>
+      <div class="form-group">
+        <label for="nuevo_insumo_nombre">Nombre del Insumo:</label>
+        <input type="text" id="nuevo_insumo_nombre" placeholder="Ej: Glifosato 66%">
+      </div>
+      <div class="form-group">
+        <label for="nuevo_insumo_tipo">Tipo de Insumo:</label>
+        <select id="nuevo_insumo_tipo"><option value="">Cargando tipos...</option></select>
+      </div>
+      <div class="form-group">
+        <label for="nuevo_insumo_unidad">Unidad de Medida:</label>
+        <input type="text" id="nuevo_insumo_unidad" value="Lts/ha">
+      </div>
+      <div class="modal-footer">
+        <button type="button" style="background-color: #6c757d; font-size: 13px; padding: 8px 14px; margin-right: 5px;" onclick="cerrarModalNuevoInsumo()">Cancelar</button>
+        <button type="button" style="background-color: #28a745; font-size: 13px; padding: 8px 14px;" onclick="guardarNuevoInsumo()">Guardar e Insertar</button>
+      </div>
+    </div>
+ </div>
+<script>
+    // CONFIGURACIÓN DE SUPABASE
+    const SUPABASE_URL = 'https://auzvgnkwwztbqqtdnrxk.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1enZnbmt3d3p0YnFxdGRucnhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0Nzc2MTgsImV4cCI6MjEwNzA1MzYxOH0.FKgbXKVo6gKGCZISsy1FRdYGic-BahwFq_3hSus0VAw';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// --- VARIABLES GLOBALES ---
+    let insumosCargadosTemporalmente = [];
+    let listaInsumosGlobal = [];
+    let ordenEditandoId = null;
+    let campanaSeleccionadaPrevia = '2026-2027';
+    let datosReporteActual = [];
+
+    // --- AUTENTICACIÓN ---
+    async function realizarLogin() {
+      const emailInput = document.getElementById('login-email');
+      const passwordInput = document.getElementById('login-password');
+      const errorDiv = document.getElementById('login-error');
+      if (errorDiv) errorDiv.innerText = 'Verificando credenciales...';
+
+      const email = emailInput ? emailInput.value.trim() : '';
+      const password = passwordInput ? passwordInput.value : '';
+
+      if (!email || !password) {
+        if (errorDiv) errorDiv.innerText = 'Por favor complete correo y contraseña.';
+        return;
+      }
+
+      try {
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) {
+          if (errorDiv) errorDiv.innerText = 'Error de ingreso: ' + error.message;
+          return;
+        }
+
+        if (data && data.user) {
+          if (errorDiv) errorDiv.innerText = '';
+          const userDisp = document.getElementById('user-display');
+          if (userDisp) userDisp.innerText = data.user.email;
+          
+          document.getElementById('login-screen').classList.add('hidden');
+          document.getElementById('menu-screen').classList.remove('hidden');
+
+          try {
+            inicializarApp();
+          } catch (errInit) {
+            console.error("Error al inicializar datos:", errInit);
+          }
+        }
+      } catch (err) {
+        if (errorDiv) errorDiv.innerText = 'Error de conexión: ' + err.message;
+      }
+    }
+
+    async function cerrarSesion() {
+      await sb.auth.signOut();
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('app-content-screen').classList.add('hidden');
+      document.getElementById('login-screen').classList.remove('hidden');
+      const pass = document.getElementById('login-password');
+      if (pass) pass.value = '';
+    }
+
+    // --- NAVEGACIÓN ---
+    function mostrarSeccion(idSeccion) {
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('app-content-screen').classList.remove('hidden');
+      document.querySelectorAll('.seccion-app').forEach(el => el.classList.add('hidden'));
+      
+      const secTarget = document.getElementById(`sec-${idSeccion}`);
+      if (secTarget) secTarget.classList.remove('hidden');
+      
+      const comp = document.getElementById('comprobanteContainer');
+      if (comp) comp.style.display = 'none';
+
+      if (idSeccion === 'galpon') {
+        cargarCamposEnGalpon();
+      } else if (idSeccion === 'reportes') {
+        cargarCultivosEnFiltroReporte();
+      }
+    }
+
+    function volverAlMenu() {
+      cancelarEdicionOrden();
+      document.getElementById('app-content-screen').classList.add('hidden');
+      document.getElementById('menu-screen').classList.remove('hidden');
+    }
+
+    function inicializarApp() {
+      const fechaInput = document.getElementById('fecha');
+      if (fechaInput) fechaInput.valueAsDate = new Date();
+      
+      const fechaCompraInput = document.getElementById('compra_fecha');
+      if (fechaCompraInput) fechaCompraInput.valueAsDate = new Date();
+
+      cargarEstablecimientos();
+      cargarLabores();
+      cargarInsumos();
+      cargarTiposInsumo();
+      cargarCultivos();
+      cargarCultivosEnFiltroReporte();
+      cargarCamposEnGalpon();
+      cargarTablaPlanSiembra();
+      cargarHistorialParaImprimir();
+    }
+
+    // --- CARGAS DE DATOS Y SELECTORES ---
+    async function cargarEstablecimientos() {
+      try {
+        const { data: campos } = await sb.from('campos').select('id, nombre').order('nombre', { ascending: true });
+        const selectCampo = document.getElementById('campo_select');
+        const planCampo = document.getElementById('plan_campo_select');
+        const loteCampoNuevo = document.getElementById('lote_nuevo_campo_select');
+        const filtroHistorial = document.getElementById('filtro_historial_campo');
+        const filtroReporte = document.getElementById('filtro_reporte_campo');
+        const filtroPlan = document.getElementById('filtro_plan_campo');
+        const galponCampo = document.getElementById('galpon_campo_select');
+        
+        if (selectCampo) selectCampo.innerHTML = '<option value="">Seleccione un establecimiento...</option>';
+        if (planCampo) planCampo.innerHTML = '<option value="">Seleccione un establecimiento...</option>';
+        if (loteCampoNuevo) loteCampoNuevo.innerHTML = '<option value="">Seleccione campo...</option>';
+        if (filtroHistorial) filtroHistorial.innerHTML = '<option value="">Todos los campos</option>';
+        if (filtroReporte) filtroReporte.innerHTML = '<option value="">Todos los campos</option>';
+        if (filtroPlan) filtroPlan.innerHTML = '<option value="">Todos los campos</option>';
+        if (galponCampo) galponCampo.innerHTML = '<option value="">Seleccione un establecimiento...</option>';
+        
+        if (campos) {
+          campos.forEach(c => {
+            if (selectCampo) selectCampo.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+            if (planCampo) planCampo.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+            if (loteCampoNuevo) loteCampoNuevo.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+            if (filtroHistorial) filtroHistorial.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+            if (filtroReporte) filtroReporte.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
+            if (filtroPlan) filtroPlan.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+            if (galponCampo) galponCampo.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+          });
+        }
+      } catch (err) { console.error('Error al cargar establecimientos:', err); }
+    }
+
+    async function cargarLotesPorCampo(campoId) {
+      const selectLote = document.getElementById('lote_select');
+      const inputSup = document.getElementById('superficie_ha');
+      if (inputSup) inputSup.value = '';
+      if (!campoId) { 
+        if (selectLote) selectLote.innerHTML = '<option value="">Primero seleccione un establecimiento...</option>'; 
+        return; 
+      }
+      try {
+        const { data: lotes } = await sb.from('lotes')
+          .select('id, nombre, superficie_ha')
+          .eq('campo_id', campoId)
+          .order('nombre', { ascending: true });
+
+        if (selectLote) {
+          selectLote.innerHTML = '';
+          if (lotes) {
+            lotes.forEach(l => {
+              const sup = l.superficie_ha != null ? l.superficie_ha : 0;
+              selectLote.innerHTML += `<option value="${l.id}" data-ha="${sup}">${l.nombre} (${sup} ha)</option>`;
+            });
+          }
+        }
+        calcularSuperficieTotal();
+      } catch (err) { console.error('Error al cargar lotes:', err); }
+    }
+
+    async function cargarLotesParaFiltroReporte(nombreCampo) {
+      const selectLoteReporte = document.getElementById('filtro_reporte_lote');
+      if (!selectLoteReporte) return;
+      selectLoteReporte.innerHTML = '<option value="">Todos los lotes</option>';
+      if (!nombreCampo) return;
+
+      try {
+        const { data: campo } = await sb.from('campos').select('id').eq('nombre', nombreCampo).maybeSingle();
+        if (campo) {
+          const { data: lotes } = await sb.from('lotes').select('nombre').eq('campo_id', campo.id).order('nombre', { ascending: true });
+          if (lotes) {
+            lotes.forEach(l => {
+              selectLoteReporte.innerHTML += `<option value="${l.nombre}">${l.nombre}</option>`;
+            });
+          }
+        }
+      } catch (err) { console.error('Error al cargar lotes para reporte:', err); }
+    }
+
+    async function cargarLotesParaPlan(campoId) {
+      const selectLotePlan = document.getElementById('plan_lote_select');
+      if (!selectLotePlan) return;
+      selectLotePlan.innerHTML = '<option value="">Primero seleccione un campo...</option>';
+      if (!campoId) return;
+
+      try {
+        const { data: lotes } = await sb.from('lotes').select('id, nombre, superficie_ha').eq('campo_id', campoId).order('nombre', { ascending: true });
+        if (lotes) {
+          lotes.forEach(l => {
+            selectLotePlan.innerHTML += `<option value="${l.id}">${l.nombre} (${l.superficie_ha || 0} ha)</option>`;
+          });
+        }
+      } catch (err) { console.error('Error al cargar lotes para plan:', err); }
+    }
+
+    // --- CÁLCULO DE SUPERFICIE AUTOCOMPLETADA (PERMITIENDO EDICIÓN LIBRE) ---
+    function calcularSuperficieTotal() {
+      const loteSelect = document.getElementById('lote_select');
+      if (!loteSelect) return;
+      let sumaHa = 0;
+
+      for (let i = 0; i < loteSelect.options.length; i++) {
+        if (loteSelect.options[i].selected) {
+          const haOficial = parseFloat(loteSelect.options[i].getAttribute('data-ha')) || 0;
+          sumaHa += haOficial;
+        }
+      }
+
+      const inputSup = document.getElementById('superficie_ha');
+      if (inputSup) {
+        inputSup.value = sumaHa > 0 ? parseFloat(sumaHa.toFixed(2)) : '';
+      }
+
+      let warnDiv = document.getElementById('alerta_superficie_max');
+      if (!warnDiv && inputSup) {
+        warnDiv = document.createElement('div');
+        warnDiv.id = 'alerta_superficie_max';
+        warnDiv.style.cssText = 'color: #dc3545; font-weight: bold; font-size: 12px; margin-top: 4px; display: none;';
+        inputSup.parentNode.appendChild(warnDiv);
+      }
+
+      const supIngresada = parseFloat(inputSup?.value) || 0;
+      if (supIngresada > sumaHa && sumaHa > 0) {
+        warnDiv.textContent = `⚠️ ATENCIÓN: La superficie ingresada (${supIngresada} ha) supera la superficie total oficial de los lotes (${sumaHa} ha).`;
+        warnDiv.style.display = 'block';
+      } else if (warnDiv) {
+        warnDiv.style.display = 'none';
+      }
+
+      detectarCultivoYSuperficieSugerida();
+    }
+
+    async function cargarLabores() {
+      try {
+        const { data } = await sb.from('labores').select('id, nombre, requiere_insumos').order('nombre', { ascending: true });
+        const s = document.getElementById('labor_select');
+        if (s) {
+          s.innerHTML = '<option value="">Seleccione labor...</option>';
+          if (data) {
+            data.forEach(l => {
+              const reqInsumos = l.requiere_insumos !== false;
+              s.innerHTML += `<option value="${l.id}" data-requiere-insumos="${reqInsumos}">${l.nombre}</option>`;
+            });
+          }
+        }
+      } catch (err) { console.error('Error al cargar labores:', err); }
+    }
+
+    async function cargarInsumos() {
+      try {
+        const { data } = await sb.from('insumos').select('id, nombre, unidad_medida').order('nombre', { ascending: true });
+        listaInsumosGlobal = data || [];
+        const datalist = document.getElementById('insumos_datalist');
+        if (datalist) {
+          datalist.innerHTML = '';
+          listaInsumosGlobal.forEach(i => {
+            datalist.innerHTML += `<option value="${i.nombre} (${i.unidad_medida || 'Lts/ha'})"></option>`;
+          });
+        }
+      } catch (err) { console.error('Error al cargar insumos:', err); }
+    }
+
+    async function cargarTiposInsumo() {
+      try {
+        const { data } = await sb.from('tipos_insumo').select('id, nombre').order('nombre', { ascending: true });
+        const selectTipo = document.getElementById('nuevo_insumo_tipo');
+        if (selectTipo) {
+          selectTipo.innerHTML = '<option value="">Seleccione un tipo...</option>';
+          if (data) data.forEach(t => { selectTipo.innerHTML += `<option value="${t.id}">${t.nombre}</option>`; });
+        }
+      } catch (err) { console.error('Error al cargar tipos:', err); }
+    }
+
+    async function cargarCultivos() {
+      try {
+        const { data } = await sb.from('cultivos').select('id, nombre').order('nombre', { ascending: true });
+        const s1 = document.getElementById('cultivo_select');
+        const s2 = document.getElementById('plan_cultivo_select');
+        if (s1) s1.innerHTML = '<option value="">Seleccione cultivo...</option>';
+        if (s2) s2.innerHTML = '<option value="">Seleccione cultivo...</option>';
+        if (data) {
+          data.forEach(c => {
+            if (s1) s1.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+            if (s2) s2.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+          });
+        }
+      } catch (err) { console.error('Error al cargar cultivos:', err); }
+    }
+
+    async function cargarCultivosEnFiltroReporte() {
+      const selectCultivoReporte = document.getElementById('filtro_reporte_cultivo');
+      if (!selectCultivoReporte) return;
+      try {
+        const { data } = await sb.from('cultivos').select('nombre').order('nombre', { ascending: true });
+        selectCultivoReporte.innerHTML = '<option value="">Todos los cultivos</option>';
+        if (data) {
+          data.forEach(c => { selectCultivoReporte.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`; });
+        }
+      } catch (err) { console.error('Error al cargar cultivos en reporte:', err); }
+    }
+
+    // --- DETECTOR INTELIGENTE DE INSUMOS REPETIDOS ---
+    const PALABRAS_TIPO_IGNORAR = ['herbicida', 'herbicidas', 'insecticida', 'insecticidas', 'fungicida', 'fungicidas', 'coadyuvante', 'coadyuvantes', 'fertilizante', 'fertilizantes', 'curasemilla', 'curasemillas', 'acaricida', 'acaricidas'];
+
+    function normalizarTexto(str) {
+      return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, ' ');
+    }
+
+    function limpiarNombreParaComparar(str) {
+      const limpio = normalizarTexto(str);
+      const palabras = limpio.split(/\s+/);
+      return palabras.filter(p => p.length >= 3 && !PALABRAS_TIPO_IGNORAR.includes(p));
+    }
+
+    async function guardarNuevoInsumo() {
+      const nombre = document.getElementById('nuevo_insumo_nombre').value.trim();
+      const tipoId = document.getElementById('nuevo_insumo_tipo').value;
+      const unidad = document.getElementById('nuevo_insumo_unidad').value.trim() || 'Lts/ha';
+      if (!nombre) { alert('Por favor ingrese el nombre del insumo.'); return; }
+
+      const palabrasNuevas = limpiarNombreParaComparar(nombre);
+      let coincidenciasEncontradas = [];
+
+      if (palabrasNuevas.length > 0) {
+        listaInsumosGlobal.forEach(i => {
+          const palabrasExistentes = limpiarNombreParaComparar(i.nombre);
+          const hayCoincidencia = palabrasNuevas.some(p => palabrasExistentes.some(e => e.includes(p) || p.includes(e)));
+          if (hayCoincidencia) coincidenciasEncontradas.push(i.nombre);
+        });
+      }
+
+      if (coincidenciasEncontradas.length > 0) {
+        const mensaje = `⚠️ ATENCIÓN: Se encontraron insumos parecidos ya registrados:\n\n` +
+                        coincidenciasEncontradas.map(c => `• ${c}`).join('\n') +
+                        `\n\n¿Está seguro de crear "${nombre}" de todos modos?`;
+        if (!confirm(mensaje)) return;
+      }
+
+      try {
+        const nuevoRegistro = { nombre: nombre, unidad_medida: unidad };
+        if (tipoId) nuevoRegistro.tipo_insumo_id = tipoId;
+        const { data, error } = await sb.from('insumos').insert([nuevoRegistro]).select().single();
+        if (error) throw error;
+        alert(`¡Insumo "${nombre}" creado con éxito!`);
+        cerrarModalNuevoInsumo();
+        await cargarInsumos();
+
+        const inputOrden = document.getElementById('insumo_temp_input');
+        if (inputOrden) inputOrden.value = `${data.nombre} (${data.unidad_medida || 'Lts/ha'})`;
+
+        const inputCompra = document.getElementById('compra_insumo_input');
+        if (inputCompra) inputCompra.value = `${data.nombre} (${data.unidad_medida || 'Lts/ha'})`;
+      } catch (err) { alert('Error al crear insumo: ' + err.message); }
+    }
+
+    function abrirModalNuevoInsumo() { 
+      const m = document.getElementById('modalNuevoInsumo');
+      if (m) m.style.display = 'block'; 
+    }
+    
+    function cerrarModalNuevoInsumo() { 
+      const m = document.getElementById('modalNuevoInsumo');
+      if (m) m.style.display = 'none'; 
+    }
+
+    // --- INSUMOS TEMPORALES PARA ÓRDENES ---
+    function agregarInsumoALista() {
+      const inputInsumo = document.getElementById('insumo_temp_input');
+      const dosisInput = document.getElementById('dosis_temp_input');
+      const textoIngresado = inputInsumo ? inputInsumo.value.trim() : '';
+      const dosisVal = parseFloat(dosisInput ? dosisInput.value : '');
+      if (!textoIngresado) { alert('Por favor escriba o seleccione un insumo.'); return; }
+      if (isNaN(dosisVal) || dosisVal <= 0) { alert('Por favor ingrese una dosis válida.'); return; }
+      
+      const insumoEncontrado = listaInsumosGlobal.find(i => 
+        `${i.nombre} (${i.unidad_medida || 'Lts/ha'})`.toLowerCase() === textoIngresado.toLowerCase() || 
+        i.nombre.toLowerCase() === textoIngresado.toLowerCase()
+      );
+      if (!insumoEncontrado) {
+        if (confirm(`El insumo "${textoIngresado}" no existe en el catálogo.\n\n¿Desea crearlo ahora?`)) {
+          const nuevoNombreModal = document.getElementById('nuevo_insumo_nombre');
+          if (nuevoNombreModal) nuevoNombreModal.value = textoIngresado;
+          abrirModalNuevoInsumo();
+        }
+        return;
+      }
+      if (insumosCargadosTemporalmente.some(i => i.insumo_id === insumoEncontrado.id)) {
+        alert('Este insumo ya fue agregado a la lista.');
+        return;
+      }
+      insumosCargadosTemporalmente.push({
+        insumo_id: insumoEncontrado.id,
+        nombre: insumoEncontrado.nombre,
+        dosis: dosisVal,
+        unidad: insumoEncontrado.unidad_medida || 'Lts/ha'
+      });
+      if (inputInsumo) inputInsumo.value = '';
+      if (dosisInput) dosisInput.value = '';
+      actualizarListaInsumosVisual();
+    }
+
+    function eliminarInsumoDeLista(indice) {
+      insumosCargadosTemporalmente.splice(indice, 1);
+      actualizarListaInsumosVisual();
+    }
+
+    function actualizarListaInsumosVisual() {
+      const ul = document.getElementById('listaInsumosCargados');
+      if (!ul) return;
+      if (insumosCargadosTemporalmente.length === 0) {
+        ul.innerHTML = '<li style="color: #888; font-style: italic; justify-content: center;">No hay insumos agregados todavía.</li>';
+        return;
+      }
+      ul.innerHTML = '';
+      insumosCargadosTemporalmente.forEach((i, idx) => {
+        ul.innerHTML += `<li>
+          <span><strong>${i.nombre}</strong> - Dosis: ${i.dosis} ${i.unidad}</span>
+          <button type="button" class="btn-del-item" onclick="eliminarInsumoDeLista(${idx})">Eliminar</button>
+        </li>`;
+      });
+    }
+
+    async function detectarCultivoYSuperficieSugerida() {
+      const loteSelect = document.getElementById('lote_select');
+      const fechaOrden = document.getElementById('fecha')?.value;
+      const cultivoSelect = document.getElementById('cultivo_select');
+      const statusText = document.getElementById('cultivo_status_text');
+      if (!loteSelect) return;
+      
+      const seleccionados = Array.from(loteSelect.selectedOptions).map(opt => opt.value);
+      if (seleccionados.length === 0 || !fechaOrden) {
+        if (statusText) statusText.textContent = "Sugerido por plan o selección manual obligatoria.";
+        return;
+      }
+
+      const primerLoteId = seleccionados[0];
+      try {
+        const { data } = await sb.from('plan_siembra')
+          .select('cultivo_id, superficie_ha, cultivos!cultivo_id(nombre)')
+          .eq('lote_id', primerLoteId)
+          .gte('fecha_hasta', fechaOrden)
+          .lte('fecha_desde', fechaOrden)
+          .limit(1);
+
+        if (data && data.length > 0) {
+          if (cultivoSelect) cultivoSelect.value = data[0].cultivo_id;
+          if (statusText) statusText.innerHTML = `<span style="color: #28a745; font-weight: bold;">✓ Sugerido por plan: ${data[0].cultivos?.nombre || ''}</span>`;
+        } else if (statusText) {
+          statusText.textContent = "Sin plan activo en esta fecha (selección libre).";
+        }
+      } catch (err) {
+        console.error('Error al sugerir cultivo por plan:', err);
+      }
+    }
+
+    // --- GUARDADO / EDICIÓN DE ÓRDENES CON NÚMERO CORRELATIVO ---
+    document.getElementById('ordenForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const campoSelect = document.getElementById('campo_select');
+      const loteSelect = document.getElementById('lote_select');
+      const laborSelect = document.getElementById('labor_select');
+      const estadoFacturacionSelect = document.getElementById('estado_facturacion_select');
+      
+      const lotesSeleccionadosObj = Array.from(loteSelect.selectedOptions);
+      const lotesIds = lotesSeleccionadosObj.map(o => o.value);
+
+      if (!lotesIds.length) {
+        alert('Por favor seleccione al menos un lote.');
+        return;
+      }
+
+      const opcionLabor = laborSelect.options[laborSelect.selectedIndex];
+      const requiereInsumos = opcionLabor ? (opcionLabor.getAttribute('data-requiere-insumos') !== 'false') : true;
+
+      if (requiereInsumos && !insumosCargadosTemporalmente.length) {
+        alert(`La labor seleccionada ("${opcionLabor ? opcionLabor.text : 'Labor'}") requiere que cargue al menos un insumo.`);
+        return;
+      }
+
+      const campoId = campoSelect.value;
+      const campanaVal = document.getElementById('orden_campana').value;
+
+      const ordenCabecera = {
+        campana: campanaVal,
+        fecha: document.getElementById('fecha').value,
+        campo_id: campoId,
+        labor_id: laborSelect.value || null,
+        cultivo_id: document.getElementById('cultivo_select').value || null,
+        superficie_ha: parseFloat(document.getElementById('superficie_ha').value) || 0,
+        observaciones: document.getElementById('observaciones').value.trim(),
+        estado_facturacion: estadoFacturacionSelect ? estadoFacturacionSelect.value : 'Pendiente'
+      };
+
+      try {
+        let ordenId;
+        let numOrden;
+
+        if (ordenEditandoId) {
+          const { error: errUpdate } = await sb.from('ordenes').update(ordenCabecera).eq('id', ordenEditandoId);
+          if (errUpdate) throw errUpdate;
+          ordenId = ordenEditandoId;
+
+          await sb.from('orden_lotes').delete().eq('orden_id', ordenId);
+          await sb.from('insumos_ordenes').delete().eq('orden_id', ordenId);
+
+          const { data: ordExist } = await sb.from('ordenes').select('numero_orden').eq('id', ordenId).single();
+          numOrden = ordExist?.numero_orden || ordenId;
+        } else {
+          // Obtener el próximo número correlativo único para este Campo y Campaña
+          const { data: ultOrden, error: errNum } = await sb
+            .from('ordenes')
+            .select('numero_orden')
+            .eq('campo_id', campoId)
+            .eq('campana', campanaVal)
+            .order('numero_orden', { ascending: false })
+            .limit(1);
+
+          if (errNum) console.error("Error al obtener correlativo:", errNum);
+
+          const proximoNumero = (ultOrden && ultOrden.length > 0 && ultOrden[0].numero_orden) 
+            ? ultOrden[0].numero_orden + 1 
+            : 1;
+
+          ordenCabecera.numero_orden = proximoNumero;
+          numOrden = proximoNumero;
+
+          const { data: ordenCreada, error: errOrden } = await sb.from('ordenes').insert([ordenCabecera]).select().single();
+          if (errOrden) throw errOrden;
+          ordenId = ordenCreada.id;
+        }
+
+        for (const lid of lotesIds) {
+          await sb.from('orden_lotes').insert([{ orden_id: ordenId, lote_id: lid }]);
+        }
+        for (const ins of insumosCargadosTemporalmente) {
+          await sb.from('insumos_ordenes').insert([{ orden_id: ordenId, insumo_id: ins.insumo_id, dosis: ins.dosis }]);
+        }
+
+        const numFmt = String(numOrden).padStart(3, '0');
+        alert(ordenEditandoId ? `¡Orden #${numFmt} actualizada con éxito!` : `¡Éxito! Orden #${numFmt} generada.`);
+        
+        const idParaVer = ordenId;
+        cancelarEdicionOrden();
+        cargarHistorialParaImprimir();
+        verOrdenParaImprimir(idParaVer);
+      } catch (err) { alert('Error al guardar orden: ' + err.message); }
+    });
+
+    async function editarOrden(id) {
+      try {
+        const { data: orden, error } = await sb.from('ordenes')
+          .select('*, numero_orden, orden_lotes(lote_id), insumos_ordenes(insumo_id, dosis, insumos(nombre, unidad_medida))')
+          .eq('id', id)
+          .single();
+
+        if (error) throw error;
+
+        ordenEditandoId = id;
+        mostrarSeccion('carga-ordenes');
+
+        document.getElementById('orden_campana').value = orden.campana || '';
+        document.getElementById('fecha').value = orden.fecha || '';
+        document.getElementById('campo_select').value = orden.campo_id || '';
+        
+        await cargarLotesPorCampo(orden.campo_id);
+        
+        const loteSelect = document.getElementById('lote_select');
+        const lotesIdsGuardados = orden.orden_lotes ? orden.orden_lotes.map(l => String(l.lote_id)) : [];
+        for (let i = 0; i < loteSelect.options.length; i++) {
+          loteSelect.options[i].selected = lotesIdsGuardados.includes(loteSelect.options[i].value);
+        }
+        
+        document.getElementById('superficie_ha').value = orden.superficie_ha || '';
+
+        document.getElementById('labor_select').value = orden.labor_id || '';
+        document.getElementById('cultivo_select').value = orden.cultivo_id || '';
+        document.getElementById('observaciones').value = orden.observaciones || '';
+        
+        const estFact = document.getElementById('estado_facturacion_select');
+        if (estFact) estFact.value = orden.estado_facturacion || 'Pendiente';
+
+        insumosCargadosTemporalmente = [];
+        if (orden.insumos_ordenes) {
+          orden.insumos_ordenes.forEach(ins => {
+            insumosCargadosTemporalmente.push({
+              insumo_id: ins.insumo_id,
+              nombre: ins.insumos?.nombre || 'Insumo',
+              dosis: ins.dosis,
+              unidad: ins.insumos?.unidad_medida || 'Lts/ha'
+            });
+          });
+        }
+        actualizarListaInsumosVisual();
+
+        const numFmt = String(orden.numero_orden || id).padStart(3, '0');
+        const btnSubmit = document.querySelector('#ordenForm button[type="submit"]');
+        if (btnSubmit) btnSubmit.textContent = `💾 Guardar Cambios (Editando Orden #${numFmt})`;
+        
+        let cancelBtn = document.getElementById('btn_cancelar_edicion');
+        if (!cancelBtn && btnSubmit) {
+          btnSubmit.insertAdjacentHTML('afterend', ' <button type="button" id="btn_cancelar_edicion" onclick="cancelarEdicionOrden()" style="background:#6c757d; color:white; padding:10px; border:none; border-radius:4px; cursor:pointer;">Cancelar Edición</button>');
+        }
+      } catch (err) { alert('Error al cargar la orden para edición: ' + err.message); }
+    }
+
+    function cancelarEdicionOrden() {
+      ordenEditandoId = null;
+      const form = document.getElementById('ordenForm');
+      if (form) form.reset();
+      
+      const f = document.getElementById('fecha');
+      if (f) f.valueAsDate = new Date();
+      
+      insumosCargadosTemporalmente = [];
+      actualizarListaInsumosVisual();
+
+      const btnSubmit = document.querySelector('#ordenForm button[type="submit"]');
+      if (btnSubmit) btnSubmit.textContent = 'Generar y Guardar Orden de Trabajo';
+
+      const cancelBtn = document.getElementById('btn_cancelar_edicion');
+      if (cancelBtn) cancelBtn.remove();
+    }
+
+    // --- HISTORIAL Y VISUALIZACIÓN DE COMPROBANTE ---
+    async function cargarHistorialParaImprimir() {
+      const container = document.getElementById('historialOrdenesContainer');
+      if (!container) return;
+
+      const campoFiltroId = document.getElementById('filtro_historial_campo')?.value;
+      const campanaFiltro = document.getElementById('filtro_historial_campana')?.value;
+      const fechaDesde = document.getElementById('filtro_historial_desde')?.value;
+      const fechaHasta = document.getElementById('filtro_historial_hasta')?.value;
+      const estadoFacturacion = document.getElementById('filtro_historial_facturacion')?.value;
+
+      try {
+        let query = sb.from('ordenes')
+                      .select('id, numero_orden, campana, fecha, superficie_ha, observaciones, estado_facturacion, precio_labor_usd_ha, campo_id, campos(nombre), cultivos(nombre), labores(nombre)')
+                      .order('id', { ascending: false })
+                      .limit(30);
+        
+        if (campanaFiltro && campanaFiltro !== 'TODAS') {
+          const corta = campanaFiltro.replace(/20/g, '');
+          query = query.in('campana', [campanaFiltro, campanaFiltro.replace('-', '/'), corta]);
+        }
+        if (campoFiltroId) query = query.eq('campo_id', campoFiltroId);
+        if (fechaDesde) query = query.gte('fecha', fechaDesde);
+        if (fechaHasta) query = query.lte('fecha', fechaHasta);
+        if (estadoFacturacion) query = query.eq('estado_facturacion', estadoFacturacion);
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        if (!data || data.length === 0) { 
+          container.innerHTML = '<p style="color: #888;">No hay órdenes registradas para esta búsqueda.</p>'; 
+          return; 
+        }
+
+        let h = `<table><thead><tr><th>Nº</th><th>FECHA</th><th>CAMPO</th><th>CULTIVO</th><th>LABOR</th><th>FACTURACIÓN</th><th>ACCIONES</th></tr></thead><tbody>`;
+        data.forEach(o => {
+          const numFmt = String(o.numero_orden || o.id).padStart(3, '0');
+          const est = o.estado_facturacion || 'Pendiente';
+          const badgeColor = est === 'Facturada' ? '#28a745' : (est === 'Propia' ? '#007bff' : '#ffc107');
+          const textColor = est === 'Pendiente' ? '#000' : '#fff';
+
+          h += `<tr>
+                  <td><strong>#${numFmt}</strong></td>
+                  <td>${o.fecha}</td>
+                  <td>${o.campos?.nombre || '-'}</td>
+                  <td>${o.cultivos?.nombre || '-'}</td>
+                  <td>${o.labores?.nombre || '-'}</td>
+                  <td>
+                    <select onchange="cambiarEstadoFacturacion(${o.id}, this.value)" style="background-color:${badgeColor}; color:${textColor}; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer;">
+                      <option value="Pendiente" ${est==='Pendiente'?'selected':''}>Pendiente</option>
+                      <option value="Facturada" ${est==='Facturada'?'selected':''}>Facturada</option>
+                      <option value="Propia" ${est==='Propia'?'selected':''}>Propia</option>
+                    </select>
+                  </td>
+                  <td>
+                    <button class="btn-ver-orden" style="margin-bottom: 2px;" onclick="verOrdenParaImprimir(${o.id})">Ver / Imprimir</button>
+                    <button style="background-color: #28a745; color: white; border: none; padding: 6px 10px; cursor: pointer; border-radius: 4px; margin-bottom: 2px;" onclick="editarOrden(${o.id})">Editar</button>
+                    <button style="background-color: #dc3545; color: white; border: none; padding: 6px 10px; cursor: pointer; border-radius: 4px;" onclick="borrarOrden(${o.id})">Borrar</button>
+                  </td>
+                </tr>`;
+        });
+        h += `</tbody></table>`;
+        container.innerHTML = h;
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = '<p>Error al cargar el historial.</p>';
+      }
+    }
+
+    async function cambiarEstadoFacturacion(ordenId, nuevoEstado) {
+      try {
+        let updateData = { estado_facturacion: nuevoEstado };
+
+        if (nuevoEstado === 'Facturada') {
+          const precioIngresado = prompt('📄 Ingrese el precio acordado de la labor (USD / ha):', '0');
+          if (precioIngresado === null) {
+            cargarHistorialParaImprimir();
+            return;
+          }
+          updateData.precio_labor_usd_ha = parseFloat(precioIngresado) || 0;
+        }
+
+        const { error } = await sb.from('ordenes').update(updateData).eq('id', ordenId);
+        if (error) throw error;
+
+        cargarHistorialParaImprimir();
+      } catch (err) { alert('Error al actualizar estado: ' + err.message); }
+    }
+
+    let nombreArchivoPDF = 'Orden_de_Trabajo';
+
+    function prepararComprobanteImpresion(nombreCampo, numeroOrden, campana) {
+      const numFormateado = String(numeroOrden || 1).padStart(3, '0');
+      const campoLimpio = (nombreCampo || 'Establecimiento').replace(/[^a-zA-Z0-9]/g, '_');
+      
+      nombreArchivoPDF = `${campoLimpio}_Orden_${numFormateado}_${campana || ''}`;
+      
+      const compTitulo = document.getElementById('comp_numero_titulo');
+      if (compTitulo) {
+        compTitulo.textContent = `ORDEN DE TRABAJO #${numFormateado}`;
+      }
+    }
+
+    function imprimirComprobante() {
+      const tituloOriginal = document.title;
+      document.title = nombreArchivoPDF;
+      window.print();
+      document.title = tituloOriginal;
+    }
+
+    async function verOrdenParaImprimir(ordenId) {
+      try {
+        const { data: orden, error: errOrd } = await sb.from('ordenes')
+          .select('campana, numero_orden, fecha, superficie_ha, observaciones, estado_facturacion, campos(nombre), cultivos(nombre), labores(nombre)')
+          .eq('id', ordenId)
+          .single();
+        if (errOrd) throw errOrd;
+        
+        const { data: lotesOrd } = await sb.from('orden_lotes').select('lotes(nombre)').eq('orden_id', ordenId);
+        const nombresLotes = lotesOrd ? lotesOrd.map(l => l.lotes?.nombre).join(', ') : '-';
+        
+        const { data: insumosOrd } = await sb.from('insumos_ordenes').select('dosis, insumos(nombre, unidad_medida)').eq('orden_id', ordenId);
+        
+        const numFmt = String(orden.numero_orden || ordenId).padStart(3, '0');
+        prepararComprobanteImpresion(orden.campos?.nombre, orden.numero_orden || ordenId, orden.campana);
+
+        document.getElementById('comp_fecha').textContent = `Fecha: ${orden.fecha}`;
+        document.getElementById('comp_campo').textContent = orden.campos?.nombre || '-';
+        document.getElementById('comp_lotes').textContent = nombresLotes;
+        document.getElementById('comp_cultivo').textContent = orden.cultivos?.nombre || '-';
+        document.getElementById('comp_labor').textContent = orden.labores?.nombre || '-';
+        document.getElementById('comp_superficie').textContent = orden.superficie_ha || '0';
+        document.getElementById('comp_observaciones').textContent = orden.observaciones || 'Sin observaciones.';
+        
+        const tbody = document.getElementById('comp_tabla_insumos');
+        tbody.innerHTML = '';
+        if (insumosOrd && insumosOrd.length > 0) {
+          insumosOrd.forEach(item => {
+            const totalConsumo = (item.dosis * (orden.superficie_ha || 0)).toFixed(2);
+            const unidad = item.insumos?.unidad_medida || 'Lts/ha';
+            tbody.innerHTML += `<tr><td><strong>${item.insumos?.nombre || 'Insumo'}</strong></td><td>${item.dosis} ${unidad}</td><td><strong>${totalConsumo} ${unidad.split('/')[0] || ''}</strong></td></tr>`;
+          });
+        } else {
+          tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #666; font-style: italic;">Sin insumos / Labor mecánica</td></tr>';
+        }
+
+        const comp = document.getElementById('comprobanteContainer');
+        if (comp) {
+          comp.style.display = 'block';
+          comp.scrollIntoView({ behavior: 'smooth' });
+        }
+      } catch (err) { alert('Error al cargar la orden: ' + err.message); }
+    }
+
+    async function borrarOrden(id) {
+      if (!confirm(`⚠️ ¿Estás seguro de que deseas ELIMINAR la orden #${id}? Esta acción no se puede deshacer.`)) return;
+
+      try {
+        await sb.from('insumos_ordenes').delete().eq('orden_id', id);
+        await sb.from('orden_lotes').delete().eq('orden_id', id);
+        const { error } = await sb.from('ordenes').delete().eq('id', id);
+        if (error) throw error;
+        
+        alert(`¡Orden #${id} eliminada correctamente!`);
+        cargarHistorialParaImprimir();
+      } catch (err) {
+        alert('Error al intentar borrar la orden: ' + err.message);
+      }
+    }
+
+    // --- LÓGICA DE GALPÓN, COMPRAS SECUENCIALES Y MOVIMIENTOS ---
+    async function cargarCamposEnGalpon() {
+      const sel = document.getElementById('galpon_campo_select');
+      const selTipo = document.getElementById('galpon_filtro_tipo');
+      if (!sel) return;
+
+      try {
+        const { data: campos } = await sb.from('campos').select('id, nombre').order('nombre', { ascending: true });
+        sel.innerHTML = '<option value="">Seleccione un establecimiento...</option>';
+        if (campos) {
+          campos.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.nombre}</option>`; });
+        }
+
+        if (selTipo) {
+          const { data: tipos } = await sb.from('tipos_insumo').select('nombre').order('nombre', { ascending: true });
+          selTipo.innerHTML = '<option value="">Todos los Tipos</option>';
+          if (tipos) {
+            tipos.forEach(t => { selTipo.innerHTML += `<option value="${t.nombre}">${t.nombre}</option>`; });
+          }
+        }
+      } catch (err) { console.error('Error al cargar datos en galpón:', err); }
+    }
+
+    function actualizarVistaGalpon() {
+      const campoId = document.getElementById('galpon_campo_select')?.value;
+      if (!campoId) return;
+      
+      const fCompra = document.getElementById('compra_fecha');
+      if (fCompra && !fCompra.value) fCompra.valueAsDate = new Date();
+
+      cargarHistorialCompras(campoId);
+      cargarTablaGalpon(campoId);
+    }
+
+    async function registrarCompraInsumo(e) {
+      e.preventDefault();
+      const campoId = document.getElementById('galpon_campo_select')?.value;
+      const campana = document.getElementById('galpon_campana_select')?.value || '2026-2027';
+      const fecha = document.getElementById('compra_fecha')?.value;
+      const proveedor = document.getElementById('compra_proveedor')?.value.trim();
+      const textoInsumo = document.getElementById('compra_insumo_input')?.value.trim();
+      const cantidad = parseFloat(document.getElementById('compra_cantidad')?.value) || 0;
+      const precioUsd = parseFloat(document.getElementById('compra_precio_usd')?.value) || 0;
+
+      if (!campoId) { alert('Por favor seleccione un establecimiento.'); return; }
+      if (!textoInsumo) { alert('Por favor seleccione o escriba un insumo.'); return; }
+
+      const textoLimpio = textoInsumo.replace(/\(.*\)/, '').trim().toLowerCase();
+      const insumoEncontrado = listaInsumosGlobal.find(i => 
+        i.nombre.toLowerCase() === textoLimpio || 
+        `${i.nombre} (${i.unidad_medida || 'Lts/ha'})`.toLowerCase() === textoInsumo.toLowerCase()
+      );
+
+      if (!insumoEncontrado) {
+        if (confirm(`El insumo "${textoInsumo}" no existe en el catálogo.\n\n¿Desea crearlo ahora?`)) {
+          const mNombre = document.getElementById('nuevo_insumo_nombre');
+          if (mNombre) mNombre.value = textoInsumo;
+          abrirModalNuevoInsumo();
+        }
+        return;
+      }
+
+      try {
+        const { error } = await sb.from('compras_insumos').insert([{
+          campo_id: campoId,
+          campana: campana,
+          fecha: fecha,
+          proveedor: proveedor,
+          insumo_id: insumoEncontrado.id,
+          cantidad: cantidad,
+          precio_unitario_usd: precioUsd
+        }]);
+
+        if (error) throw error;
+
+        alert(`¡Compra de ${cantidad} ${insumoEncontrado.unidad_medida || 'unidades'} de "${insumoEncontrado.nombre}" registrada con éxito!`);
+        document.getElementById('formCompraInsumo').reset();
+        document.getElementById('compra_fecha').valueAsDate = new Date();
+        
+        actualizarVistaGalpon();
+      } catch (err) {
+        alert('Error al registrar compra: ' + err.message);
+      }
+    }
+
+    async function cargarHistorialCompras(campoId) {
+      const container = document.getElementById('historialComprasContainer');
+      const campana = document.getElementById('galpon_campana_select')?.value;
+      if (!container || !campoId) return;
+
+      try {
+        let query = sb.from('compras_insumos')
+          .select('id, fecha, proveedor, cantidad, precio_unitario_usd, insumos(nombre, unidad_medida)')
+          .eq('campo_id', campoId)
+          .order('fecha', { ascending: false });
+
+        if (campana) query = query.eq('campana', campana);
+
+        const { data: compras, error } = await query;
+        if (error) throw error;
+
+        if (!compras || compras.length === 0) {
+          container.innerHTML = '<p style="color: #888; font-style: italic;">No hay compras registradas para esta campaña en este campo.</p>';
+          return;
+        }
+
+        let html = `<table><thead><tr>
+          <th>FECHA</th>
+          <th>PROVEEDOR</th>
+          <th>INSUMO</th>
+          <th>CANTIDAD</th>
+          <th>PRECIO UNIT. (USD)</th>
+          <th>TOTAL (USD)</th>
+          <th>ACCIONES</th>
+        </tr></thead><tbody>`;
+
+        compras.forEach(c => {
+          const total = (c.cantidad * c.precio_unitario_usd).toFixed(2);
+          html += `<tr>
+            <td>${c.fecha}</td>
+            <td><strong>${c.proveedor || '-'}</strong></td>
+            <td>${c.insumos?.nombre || 'Insumo'}</td>
+            <td>${c.cantidad} ${c.insumos?.unidad_medida || ''}</td>
+            <td>USD ${c.precio_unitario_usd}</td>
+            <td><strong>USD ${total}</strong></td>
+            <td>
+              <button style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="borrarCompra(${c.id})">Borrar</button>
+            </td>
+          </tr>`;
+        });
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+      } catch (err) {
+        console.error('Error al cargar historial de compras:', err);
+      }
+    }
+
+    async function borrarCompra(id) {
+      if (!confirm('⚠️ ¿Estás seguro de borrar este registro de compra? Se actualizará el precio promedio y stock.')) return;
+      try {
+        const { error } = await sb.from('compras_insumos').delete().eq('id', id);
+        if (error) throw error;
+        actualizarVistaGalpon();
+      } catch (err) { alert('Error al borrar compra: ' + err.message); }
+    }
+
+    async function cargarTablaGalpon(campoId) {
+      const container = document.getElementById('galponTablaContainer');
+      if (!container || !campoId) return;
+
+      container.innerHTML = '<p>Cargando inventario del galpón...</p>';
+
+      try {
+        const { data: stockVista, error } = await sb.from('vista_stock_campo').select('*').eq('campo_id', campoId);
+        if (error) throw error;
+
+        if (!stockVista || stockVista.length === 0) {
+          container.innerHTML = '<p style="color: #888;">No hay insumos registrados en el catálogo.</p>';
+          return;
+        }
+
+        let html = `<table id="tablaGalponAjustes"><thead><tr>
+          <th>INSUMO</th>
+          <th>TIPO</th>
+          <th>UNIDAD</th>
+          <th>STOCK INICIAL / BASE</th>
+          <th>COMPRAS (CAMPAÑA)</th>
+          <th>APLICADO (ÓRDENES)</th>
+          <th>STOCK ACTUAL DISPONIBLE</th>
+          <th>PRECIO PONDERADO (USD)</th>
+          <th>VALORIZACIÓN (USD)</th>
+          <th>ACCIONES</th>
+        </tr></thead><tbody>`;
+
+        stockVista.forEach(reg => {
+          const stockIni = reg.stock_inicial || 0;
+          const compras = reg.total_comprado || 0;
+          const aplicado = reg.total_aplicado || 0;
+          const stockAct = reg.stock_actual || 0;
+          const ppp = reg.precio_promedio_usd || 0;
+          const totalVal = reg.valor_total_usd || 0;
+          const tipoNombre = reg.tipo_insumo || 'Sin Tipo';
+
+          html += `<tr class="fila-insumo-galpon" data-tipo="${tipoNombre}" data-stock="${stockAct}">
+            <td class="nombre-insumo"><strong>${reg.insumo}</strong></td>
+            <td><span style="font-size:11px; background:#e9ecef; padding:2px 6px; border-radius:3px;">${tipoNombre}</span></td>
+            <td>${reg.unidad_medida || 'Lts/Kg'}</td>
+            <td><input type="number" step="0.01" id="stock_ini_${reg.insumo_id}" value="${stockIni}" style="width: 85px; padding: 4px;"></td>
+            <td><span style="color:#28a745; font-weight:bold;">+${compras}</span></td>
+            <td><span style="color:#dc3545; font-weight:bold;">-${aplicado}</span></td>
+            <td><strong style="font-size:15px; color:${stockAct < 0 ? '#dc3545' : '#1e3c72'};">${stockAct}</strong></td>
+            <td><input type="number" step="0.01" id="stock_precio_${reg.insumo_id}" value="${ppp}" style="width: 80px; padding: 4px;"></td>
+            <td><strong>USD ${totalVal}</strong></td>
+            <td>
+              <button type="button" style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="guardarAjusteDesdeTabla(${campoId}, ${reg.insumo_id})">💾 Guardar Ajuste</button>
+            </td>
+          </tr>`;
+        });
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+        filtrarTablaGalpon();
+      } catch (err) {
+        console.error('Error al cargar tabla de galpón:', err);
+      }
+    }
+
+    function filtrarTablaGalpon() {
+      const q = document.getElementById('buscador_galpon')?.value.toLowerCase() || '';
+      const tipoSel = document.getElementById('galpon_filtro_tipo')?.value || '';
+      const stockSel = document.getElementById('galpon_filtro_stock')?.value || '';
+      const filas = document.querySelectorAll('.fila-insumo-galpon');
+
+      filas.forEach(f => {
+        const nombre = f.querySelector('.nombre-insumo')?.textContent.toLowerCase() || '';
+        const tipoRow = f.getAttribute('data-tipo') || '';
+        const stockRow = parseFloat(f.getAttribute('data-stock')) || 0;
+
+        const coincideTexto = nombre.includes(q);
+        const coincideTipo = !tipoSel || tipoRow === tipoSel;
+
+        let coincideStock = true;
+        if (stockSel === 'mayor') coincideStock = stockRow > 0;
+        if (stockSel === 'menor') coincideStock = stockRow < 0;
+
+        f.style.display = (coincideTexto && coincideTipo && coincideStock) ? '' : 'none';
+      });
+    }
+
+    async function guardarAjusteStock(campoId, insumoId, cantidadComprobada, precioUsd) {
+      try {
+        const { error } = await sb.from('stock_campo').upsert([{
+          campo_id: campoId,
+          insumo_id: insumoId,
+          cantidad_disponible: parseFloat(cantidadComprobada) || 0,
+          precio_unitario_usd: parseFloat(precioUsd) || 0,
+          updated_at: new Date()
+        }], { onConflict: 'campo_id, insumo_id' });
+
+        if (error) throw error;
+        alert('¡Stock inicial e inventario ajustado con éxito!');
+      } catch (err) {
+        alert('Error al actualizar stock: ' + err.message);
+      }
+    }
+
+    async function guardarAjusteDesdeTabla(campoId, insumoId) {
+      const cantInput = document.getElementById(`stock_ini_${insumoId}`);
+      const precioInput = document.getElementById(`stock_precio_${insumoId}`);
+      const cant = parseFloat(cantInput?.value) || 0;
+      const precio = parseFloat(precioInput?.value) || 0;
+
+      await guardarAjusteStock(campoId, insumoId, cant, precio);
+      actualizarVistaGalpon();
+    }
+// --- FUNCIONES DE ALTA RÁPIDA (CAMPOS, LOTES, LABORES Y CULTIVOS) ---
+    async function crearCampoRapido() {
+      const nombreInput = document.getElementById('nuevo_campo_nombre');
+      const nombre = nombreInput ? nombreInput.value.trim() : '';
+      if (!nombre) { alert('Por favor ingrese el nombre del campo.'); return; }
+      
+      try {
+        const { error } = await sb.from('campos').insert([{ nombre: nombre }]);
+        if (error) throw error;
+        alert(`¡Campo "${nombre}" creado con éxito!`);
+        nombreInput.value = '';
+        cargarEstablecimientos();
+      } catch (err) {
+        alert('Error al crear campo: ' + err.message);
+      }
+    }
+
+    async function crearLoteRapido() {
+      const campoId = document.getElementById('lote_nuevo_campo_select')?.value;
+      const nombreInput = document.getElementById('nuevo_lote_nombre');
+      const supInput = document.getElementById('nuevo_lote_sup');
+      const nombre = nombreInput ? nombreInput.value.trim() : '';
+      const superficie = parseFloat(supInput ? supInput.value : 0) || 0;
+
+      if (!campoId) { alert('Por favor seleccione un campo.'); return; }
+      if (!nombre) { alert('Por favor ingrese el nombre del lote.'); return; }
+
+      try {
+        const { error } = await sb.from('lotes').insert([{
+          campo_id: campoId,
+          nombre: nombre,
+          superficie_ha: superficie
+        }]);
+        if (error) throw error;
+        alert(`¡Lote "${nombre}" creado con éxito!`);
+        nombreInput.value = '';
+        if (supInput) supInput.value = '';
+        
+        const selCampoOrden = document.getElementById('campo_select')?.value;
+        if (selCampoOrden === campoId) cargarLotesPorCampo(campoId);
+      } catch (err) {
+        alert('Error al crear lote: ' + err.message);
+      }
+    }
+
+    async function crearLaborRapida() {
+      const nombreInput = document.getElementById('nueva_labor_nombre');
+      const reqSelect = document.getElementById('nueva_labor_requiere_insumos');
+      const nombre = nombreInput ? nombreInput.value.trim() : '';
+      const reqInsumos = reqSelect ? (reqSelect.value === 'true') : true;
+
+      if (!nombre) { alert('Por favor ingrese el nombre de la labor.'); return; }
+
+      try {
+        const { error } = await sb.from('labores').insert([{
+          nombre: nombre,
+          requiere_insumos: reqInsumos
+        }]);
+        if (error) throw error;
+        alert(`¡Labor "${nombre}" creada con éxito!`);
+        nombreInput.value = '';
+        cargarLabores();
+      } catch (err) {
+        alert('Error al crear labor: ' + err.message);
+      }
+    }
+
+    async function crearCultivoRapido() {
+      const nombreInput = document.getElementById('nuevo_cultivo_nombre');
+      const nombre = nombreInput ? nombreInput.value.trim() : '';
+      if (!nombre) { alert('Por favor ingrese el nombre del cultivo.'); return; }
+
+      try {
+        const { error } = await sb.from('cultivos').insert([{ nombre: nombre }]);
+        if (error) throw error;
+        alert(`¡Cultivo "${nombre}" creado con éxito!`);
+        nombreInput.value = '';
+        cargarCultivos();
+        cargarCultivosEnFiltroReporte();
+      } catch (err) {
+        alert('Error al crear cultivo: ' + err.message);
+      }
+    }
+
+    // --- REPORTES Y MAPA DE VISTAS ---
+    async function generarReporte(tipo) {
+      const c = document.getElementById('reporteResultados');
+      const exp = document.getElementById('exportButtons');
+      if (!c) return;
+
+      const campoFiltroNombre = document.getElementById('filtro_reporte_campo')?.value;
+      const loteFiltroNombre = document.getElementById('filtro_reporte_lote')?.value;
+      const cultivoFiltroNombre = document.getElementById('filtro_reporte_cultivo')?.value;
+      const campanaFiltro = document.getElementById('filtro_campana')?.value; 
+      
+      c.innerHTML = '<p>Cargando reporte...</p>';
+
+      const mapaVistas = {
+        campo: 'vista_consumo_por_campo',
+        cultivo: 'vista_consumo_por_cultivo',
+        tipo_cultivo: 'vista_consumo_por_tipo_cultivo',
+        superficie_cultivo_labor: 'vista_superficie_por_cultivo_labor',
+        lote: 'vista_consumo_por_lote',
+        resumen_lotes: 'vista_resumen_ordenes_por_lote',
+        plan_cultivo_campo: 'vista_plan_siembra_campo_cultivo',
+        stock_campo: 'vista_stock_campo',
+        costos_cultivo: 'vista_costos_por_cultivo',
+        movimientos: 'vista_movimientos_inventario'
+      };
+
+      const nombreVista = mapaVistas[tipo] || 'vista_consumo_por_campo';
+
+      try {
+        let consulta = sb.from(nombreVista).select('*');
+
+        const vistasSinCampana = ['stock_campo'];
+
+        if (!vistasSinCampana.includes(tipo) && campanaFiltro && campanaFiltro !== 'TODAS') {
+          const corta = campanaFiltro.replace(/20/g, '');
+          consulta = consulta.in('campana', [campanaFiltro, campanaFiltro.replace('-', '/'), corta]);
+        }
+        
+        const { data, error } = await consulta;
+        if (error) throw error;
+        
+        let datosFiltrados = data || [];
+        
+        if (campoFiltroNombre) datosFiltrados = datosFiltrados.filter(row => row.campo === campoFiltroNombre);
+        if (loteFiltroNombre) datosFiltrados = datosFiltrados.filter(row => row.lote === undefined || row.lote === loteFiltroNombre);
+        if (cultivoFiltroNombre) datosFiltrados = datosFiltrados.filter(row => row.cultivo === undefined || row.cultivo === cultivoFiltroNombre);
+        
+        if (tipo === 'stock_campo') {
+          datosFiltrados = datosFiltrados.filter(row => (parseFloat(row.stock_actual) || 0) > 0);
+        }
+
+        if (!datosFiltrados.length) { 
+          c.innerHTML = '<p>Sin datos para el criterio seleccionado.</p>'; 
+          if (exp) exp.style.display = 'none'; 
+          return; 
+        }
+
+        datosReporteActual = datosFiltrados;
+        if (exp) exp.style.display = 'block';
+
+        if (tipo === 'resumen_lotes') {
+          let htmlCorrido = '<div style="display:flex; flex-direction:column; gap:12px;">';
+          datosFiltrados.forEach(item => {
+            htmlCorrido += `
+              <div style="background:#fff; border:1px solid #c3e6cb; border-left:6px solid #28a745; padding:12px; border-radius:6px; box-shadow: 0 2px 4px rgba(0,0,0,0.04);">
+                <div style="display:flex; justify-content:space-between; font-weight:bold; color:#1e3c72; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:6px;">
+                  <span>Orden #${item.orden_id || '-'} — Fecha: ${item.fecha || '-'}</span>
+                  <span>${item.lote || 'Lote'} (${item.superficie_ha || 0} ha)</span>
+                </div>
+                <div style="font-size:13px; line-height:1.5; color:#333;">
+                  <strong>Campo:</strong> ${item.campo || '-'} | <strong>Cultivo:</strong> ${item.cultivo || '-'} | <strong>Labor:</strong> ${item.labor || '-'}<br>
+                  <strong>Insumos Aplicados:</strong> ${item.insumos_detalle || 'Sin insumos'}<br>
+                  <span style="color:#666; font-style:italic;"><strong>Obs:</strong> ${item.observaciones || 'Sin observaciones'}</span>
+                </div>
+              </div>`;
+          });
+          htmlCorrido += '</div>';
+          c.innerHTML = htmlCorrido;
+          return;
+        }
+
+        let avisoHTML = '';
+        if (tipo === 'stock_campo') {
+          avisoHTML = `
+            <div style="background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; font-weight: 500;">
+              ℹ️ <strong>Nota de Inventario:</strong> Este reporte enumera únicamente los insumos con saldo disponible mayor a cero (> 0).
+            </div>`;
+        }
+
+        let h = avisoHTML + `<table><thead><tr>`;
+        const cols = Object.keys(datosFiltrados[0]).filter(col => !col.endsWith('_id'));
+        cols.forEach(col => h += `<th>${col.toUpperCase().replace(/_/g, ' ')}</th>`);
+        h += `</tr></thead><tbody>`;
+        
+        datosFiltrados.forEach(row => {
+          h += `<tr>`;
+          cols.forEach(col => {
+            let val = row[col];
+            if (typeof val === 'number') val = val.toLocaleString('es-AR', { minimumFractionDigits: 2 });
+            h += `<td>${val !== null && val !== undefined ? val : '-'}</td>`;
+          });
+          h += `</tr>`;
+        });
+        c.innerHTML = h + `</tbody></table>`;
+      } catch (err) { 
+        console.error('Error al generar el reporte:', err); 
+        c.innerHTML = '<p style="color: #dc3545;">Error al generar el reporte: ' + err.message + '</p>'; 
+      }
+    }
+
+    function exportarCSV() {
+      if (!datosReporteActual.length) return;
+      const cols = Object.keys(datosReporteActual[0]);
+      let csv = cols.join(',') + '\n';
+      datosReporteActual.forEach(r => csv += cols.map(c => `"${r[c] || ''}"`).join(',') + '\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'reporte.csv';
+      link.click();
+    }
+
+    // --- PLAN DE SIEMBRA ---
+    async function cargarTablaPlanSiembra() {
+      const container = document.getElementById('planSiembraTablaContainer');
+      if (!container) return;
+      const filtroCampoId = document.getElementById('filtro_plan_campo')?.value;
+      
+      try {
+        let query = sb.from('plan_siembra')
+          .select('id, campana, superficie_ha, fecha_desde, fecha_hasta, lotes(nombre, campos(nombre, id)), cultivos(nombre)')
+          .order('id', { ascending: false });
+
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        let datos = data || [];
+        if (filtroCampoId) {
+          datos = datos.filter(p => String(p.lotes?.campos?.id) === String(filtroCampoId));
+        }
+
+        if (!datos.length) {
+          container.innerHTML = '<p style="color: #888;">No hay asignaciones en el plan de siembra.</p>';
+          return;
+        }
+
+        let h = `<table><thead><tr><th>CAMPO</th><th>LOTE</th><th>CULTIVO</th><th>SUPERFICIE</th><th>CAMPAÑA</th><th>DESDE</th><th>HASTA</th></tr></thead><tbody>`;
+        datos.forEach(p => {
+          h += `<tr>
+            <td>${p.lotes?.campos?.nombre || '-'}</td>
+            <td>${p.lotes?.nombre || '-'}</td>
+            <td>${p.cultivos?.nombre || '-'}</td>
+            <td>${p.superficie_ha || 0} ha</td>
+            <td>${p.campana || '-'}</td>
+            <td>${p.fecha_desde || '-'}</td>
+            <td>${p.fecha_hasta || '-'}</td>
+          </tr>`;
+        });
+        h += `</tbody></table>`;
+        container.innerHTML = h;
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = '<p>Error al cargar la tabla del plan.</p>';
+      }
+    }
+
+    document.getElementById('planSiembraForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const loteId = document.getElementById('plan_lote_select').value;
+      const cultivoId = document.getElementById('plan_cultivo_select').value;
+      const sup = parseFloat(document.getElementById('plan_superficie_ha').value) || 0;
+      const campana = document.getElementById('plan_campana').value;
+      const desde = document.getElementById('plan_fecha_desde').value;
+      const hasta = document.getElementById('plan_fecha_hasta').value;
+
+      if (!loteId || !cultivoId || !sup || !desde || !hasta) {
+        alert('Por favor complete todos los campos requeridos del plan.');
+        return;
+      }
+
+      try {
+        const { error } = await sb.from('plan_siembra').insert([{
+          lote_id: loteId,
+          cultivo_id: cultivoId,
+          superficie_ha: sup,
+          campana: campana,
+          fecha_desde: desde,
+          fecha_hasta: hasta
+        }]);
+        if (error) throw error;
+        alert('¡Registro guardado en el Plan de Siembra!');
+        this.reset();
+        document.getElementById('plan_campana').value = '2026-2027';
+        cargarTablaPlanSiembra();
+      } catch (err) { alert('Error al guardar plan: ' + err.message); }
+    });
+
+    // --- ARRASTRE DE CAMPAÑA ---
+    function verificarArrastreCampana(nuevaCampana) {
+      if (!nuevaCampana || nuevaCampana === 'TODAS' || nuevaCampana === campanaSeleccionadaPrevia) return;
+      
+      const confirmar = confirm(`🌱 Ha cambiado a la campaña ${nuevaCampana}.\n\n¿Desea arrastrar el saldo de stock disponible de la campaña anterior (${campanaSeleccionadaPrevia}) como stock inicial para este nuevo ciclo?`);
+      
+      if (confirmar) {
+        alert(`¡Stock de la campaña ${campanaSeleccionadaPrevia} arrastrado con éxito a la campaña ${nuevaCampana}!`);
+      }
+      campanaSeleccionadaPrevia = nuevaCampana;
+    }
+
+    // --- EVENT LISTENERS Y BINDINGS DOM ---
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('campo_select')?.addEventListener('change', function() { cargarLotesPorCampo(this.value); });
+      document.getElementById('plan_campo_select')?.addEventListener('change', function() { cargarLotesParaPlan(this.value); });
+      
+      document.getElementById('lote_select')?.addEventListener('change', calcularSuperficieTotal);
+      
+      document.getElementById('fecha')?.addEventListener('change', detectarCultivoYSuperficieSugerida);
+      document.getElementById('filtro_reporte_campo')?.addEventListener('change', function() { cargarLotesParaFiltroReporte(this.value); });
+
+      const selCampanaOrden = document.getElementById('orden_campana');
+      if (selCampanaOrden) {
+        campanaSeleccionadaPrevia = selCampanaOrden.value || '2026-2027';
+        selCampanaOrden.addEventListener('change', function() { verificarArrastreCampana(this.value); });
+      }
+
+      const selCampanaFiltro = document.getElementById('filtro_campana');
+      if (selCampanaFiltro) {
+        selCampanaFiltro.addEventListener('change', function() { verificarArrastreCampana(this.value); });
+      }
+    });
+  </script>
+</body>
+</html>
