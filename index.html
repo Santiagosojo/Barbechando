@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barbechando - Sistema de Gestión Agrícola</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#28a745">
+  <style>
+    @media print {
+      body * { visibility: hidden; }
+      #comprobanteContainer, #comprobanteContainer * { visibility: visible; }
+      #comprobanteContainer { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; box-shadow: none; }
+      #comprobanteContainer button { display: none !important; }
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f6f8; color: #333; margin: 0; padding: 15px; }
+    .container { max-width: 1050px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); position:relative; }
+    h2, h3, h4 { color: #1e3c72; margin-top: 0; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 13px; }
+    select, input, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background: #fff; }
+    select[multiple] { height: 115px; }
+    .help-text { font-size: 11px; color: #666; margin-top: 3px; }
+    button { background-color: #28a745; color: white; padding: 10px 18px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; }
+    button:hover { background-color: #218838; }
+    .btn-report { background-color: #007bff; margin-right: 5px; margin-bottom: 10px; font-size: 13px; padding: 8px 12px; border: none; color: white; border-radius: 4px; cursor: pointer; }
+    .btn-report:hover { background-color: #0056b3; }
+    .btn-back { background-color: #6c757d; font-size: 13px; padding: 8px 14px; margin-bottom: 15px; }
+    
+    .hero-card { background: linear-gradient(135deg, #1b5e20, #2e7d32); color: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(46,125,50,0.25); margin-bottom: 20px; cursor: pointer; }
+    .hero-actions { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+    .btn-hero { background: #fff; color: #1b5e20; padding: 8px 16px; border-radius: 5px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; }
+    .secondary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
+    .sub-card { background: #f8f9fa; border: 1px solid #d0d7de; border-radius: 8px; padding: 16px; cursor: pointer; display: flex; align-items: center; gap: 15px; }
+    .sub-card:hover { border-color: #007bff; background: #eef6ff; }
+    
+    .insumos-box { background: #f8f9fa; border: 2px dashed #007bff; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
+    .insumo-input-row { display: grid; grid-template-columns: 5fr 1.2fr auto auto; gap: 10px; align-items: end; }
+    @media (max-width: 768px) { .insumo-input-row, .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+    .btn-add-insumo { background-color: #ffc107; color: #333; height: 35px; }
+    .btn-new-insumo { background-color: #6c757d; color: white; height: 35px; }
+    .lista-insumos { list-style: none; padding: 0; margin-top: 10px; }
+    .lista-insumos li { background: #fff; border: 1px solid #ddd; padding: 8px 12px; margin-bottom: 5px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+    .btn-del-item { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+    
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); overflow-y: auto; }
+    .modal-content { background: #fff; margin: 5% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 550px; position:relative; }
+    .close-modal { position: absolute; right: 15px; top: 15px; font-size: 20px; cursor: pointer; color: #888; }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #e9ecef; }
+    .section-box { background: #fafafa; border: 1px solid #e0e0e0; padding: 15px; border-radius: 6px; margin-top: 15px; }
+    .badge-estado { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+    
+    .tabs-reportes { display: flex; gap: 8px; border-bottom: 3px solid #1b5e20; margin-bottom: 15px; overflow-x: auto; align-items: flex-end;}
+    .tab-btn { background: #e9ecef; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; cursor: pointer; white-space: nowrap; transition: all 0.2s; font-size:13px; font-weight:bold; color:#333;}
+    .tab-btn:hover { filter: brightness(0.95); }
+    .tab-btn.active { background: #1b5e20; color: white; padding: 12px 24px; font-size:15px; }
+    
+    .bar-container { background: #e9ecef; border-radius: 4px; height: 22px; width: 100%; position: relative; overflow: hidden; display: flex; margin-top: 4px; }
+    .bar-fill-comprado { background-color: #28a745; height: 100%; transition: width 0.3s; }
+    .bar-fill-pendiente { background-color: #fd7e14; height: 100%; transition: width 0.3s; }
+    .bar-label { position: absolute; width: 100%; text-align: center; font-size: 11px; font-weight: bold; line-height: 22px; color: #212529; }
+    
+    #offline-banner { display:none; background:#ffc107; color:#856404; padding:8px 15px; text-align:center; font-weight:bold; font-size:13px; border-radius:4px; margin-bottom:15px; }
+    #sync-banner { display:none; background:#17a2b8; color:#fff; padding:8px 15px; text-align:center; font-weight:bold; font-size:13px; border-radius:4px; margin-bottom:15px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div id="login-screen" class="container" style="max-width: 400px; text-align:center; margin-top:40px;">
+    <h2>Barbechando</h2>
+    <p style="font-size: 13px; color: #666;">Gestión Agrícola y Control Productivo</p>
+    <div class="form-group" style="text-align: left;"><label>Correo Electrónico:</label><input type="email" id="login-email" placeholder="usuario@barbechando.com" required></div>
+    <div class="form-group" style="text-align: left;"><label>Contraseña:</label><input type="password" id="login-password" placeholder="••••••••" required></div>
+    <button onclick="realizarLogin()" style="width: 100%;">Iniciar Sesión</button>
+    <div id="login-error" style="color: #dc3545; font-size: 13px; margin-top: 10px;"></div>
+    <div style="margin-top: 25px; font-size: 12px; color: #888; font-style: italic; font-weight:bold;">Powered by Sojo-AgTech</div>
+  </div>
+
+  <!-- MENU PRINCIPAL -->
+  <div id="menu-screen" class="container hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #eee; padding-bottom:12px; margin-bottom:15px;">
+      <div>
+        <h2 style="margin: 0;">Barbechando - Menú Principal</h2>
+        <span id="user-display" style="font-size: 12px; color: #666;"></span>
+        <div style="margin-top: 8px;">
+          <label style="font-size: 11px; color: #333; font-weight: bold; margin-bottom: 2px; display:inline-block;">Campaña Activa Offline:</label>
+          <select id="config_campana_offline" class="select-campana" onchange="cambiarCampanaOffline()" style="font-size: 12px; padding: 4px; width: auto; display: inline-block; background:#f0f7ff; border:1px solid #cce5ff;"></select>
+        </div>
+      </div>
+      <button onclick="cerrarSesion()" style="background:#dc3545; font-size:12px; padding:6px 12px;">Cerrar Sesión</button>
+    </div>
+
+    <div id="offline-banner">⚠️ Sin conexión. Órdenes se guardarán en el teléfono y se subirán al recuperar señal.</div>
+    <div id="sync-banner">🔄 Sincronizando órdenes pendientes...</div>
+
+    <div class="hero-card" onclick="mostrarSeccion('gestion-productiva')">
+      <div style="display:flex; align-items:center; gap:15px;"><span style="font-size:38px;">🚜 🌾 🌽 🌱</span>
+        <div><h3 style="margin:0;color:#fff;">1. Gestión Productiva a Campo</h3><p style="margin:0; font-size:13px; opacity:0.9;">Órdenes, labores, plan de siembras y configuración.</p></div>
+      </div>
+      <div class="hero-actions" onclick="event.stopPropagation();">
+        <button class="btn-hero" onclick="mostrarSeccionDirecta('plan-siembras')">🗺️ Plan de Siembras</button>
+        <button class="btn-hero" onclick="mostrarSeccionDirecta('carga-ordenes')">📥 Cargar Nueva Orden</button>
+        <button class="btn-hero" onclick="mostrarSeccionDirecta('consulta-ordenes')">🔍 Consultar Historial</button>
+        <button class="btn-hero" onclick="mostrarSeccionDirecta('alta-global')">📍 Altas Maestras</button>
+      </div>
+    </div>
+
+    <div class="secondary-grid">
+      <div class="sub-card" onclick="mostrarSeccion('presupuestos-stocks')">
+        <span class="icon">📦</span><div><strong style="color:#1e3c72; font-size:15px;">2. Presupuestos y Stocks</strong><div style="font-size:12px; color:#666;">Planificación teórica, galpón y compras.</div></div>
+      </div>
+      <div class="sub-card" onclick="mostrarSeccion('gestion-comercial')">
+        <span class="icon">🤝</span><div><strong style="color:#1e3c72; font-size:15px;">3. Gestión Comercial</strong><div style="font-size:12px; color:#666;">Rindes esperados y contratos forward.</div></div>
+      </div>
+      <div class="sub-card" onclick="mostrarSeccionDirecta('reportes-global')">
+        <span class="icon">📊</span><div><strong style="color:#1e3c72; font-size:15px;">4. Reportes y Estadísticas</strong><div style="font-size:12px; color:#666;">Control productivo, presupuestario e IVA.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-content-screen" class="container hidden">
+    <button class="btn-back" onclick="volverAlMenu()">← Volver al Menú Principal</button>
+
+    
+    <div id="btn-panel-central" class="hero-card hidden" onclick="mostrarSeccion('panel-sojo')" style="background: linear-gradient(135deg, #1e3c72, #2a5298); margin-top:20px;">
+      <div style="display:flex; align-items:center; gap:15px;"><span style="font-size:38px;">👑</span>
+        <div><h3 style="margin:0;color:#fff;">Panel de Administración Sojo-AgTech</h3><p style="margin:0; font-size:13px; opacity:0.9;">Control de suscripciones, intermediarios y facturación SaaS.</p></div>
+      </div>
+    </div>
+
+
+    <!-- 1. GESTION PRODUCTIVA -->
+    <div id="sec-gestion-productiva" class="seccion-app hidden">
+      <h2>🚜 Gestión Productiva</h2>
+      <div class="secondary-grid">
+        <div class="sub-card" onclick="mostrarSeccionDirecta('carga-ordenes')"><span class="icon">📥</span><div><strong>Carga de Órdenes</strong></div></div>
+        <div class="sub-card" onclick="mostrarSeccionDirecta('consulta-ordenes')"><span class="icon">🔍</span><div><strong>Consulta de Órdenes</strong></div></div>
+        <div class="sub-card" onclick="mostrarSeccionDirecta('plan-siembras')"><span class="icon">🗺️</span><div><strong>Plan de Siembras</strong></div></div>
+        <div class="sub-card" onclick="mostrarSeccionDirecta('alta-global')"><span class="icon">📍</span><div><strong>Altas Maestras</strong></div></div>
+      </div>
+    </div>
+
+    
+    <!-- PANEL SOJO -->
+    <div id="sec-panel-sojo" class="seccion-app hidden">
+      <h2>👑 Panel de Administración (SaaS)</h2>
+      <p style="font-size:12px; color:#666;">Exclusivo para rol Central. Resumen mensual de suscripciones y comisiones.</p>
+      <div class="section-box" style="border:2px solid #1e3c72; background:#f0f4f8;">
+         <button class="btn-report" style="width:100%;" onclick="generarReporteSuscripciones()">🔄 Generar Reporte de Facturación a Clientes</button>
+         <div id="contenedor-reporte-saas" style="margin-top:15px; overflow-x:auto;"></div>
+      </div>
+    </div>
+
+    <!-- ALTAS GLOBALES -->
+    <div id="sec-alta-global" class="seccion-app hidden">
+            <h2>📍 Panel de Altas y Configuraciones</h2>
+      <div style="text-align:right; margin-bottom:15px;">
+        <button type="button" class="btn-hero" style="background:#dc3545; color:#fff;" onclick="abrirModalAdminMaestros()">🗑️ Administrar / Eliminar Registros</button>
+      </div>
+      
+      <div class="section-box" style="border:2px solid #fd7e14; background:#fffaf6;">
+        <h3 style="color:#fd7e14; margin-top:0;">1. Crear Nuevo Depósito / Galpón</h3>
+        <p style="font-size:12px; color:#666;">Cree los depósitos donde almacenará insumos. Debe tener al menos uno antes de crear establecimientos.</p>
+        <div class="grid-2">
+          <div class="form-group"><label>Firma Propietaria:</label><input type="text" id="nuevo_dep_firma" list="firmas_datalist"></div>
+          <div class="form-group"><label>Nombre del Depósito:</label><input type="text" id="nuevo_dep_nombre" placeholder="Ej: Galpón Principal"></div>
+        </div>
+        <button type="button" style="background:#fd7e14; width:100%;" onclick="crearDeposito()">Guardar Depósito</button>
+      </div>
+
+      <div class="section-box" style="border:2px solid #007bff; background:#eef6ff; margin-top:15px;">
+        <h3 style="color:#007bff; margin-top:0;">2. Crear Establecimiento (Campo)</h3>
+        <div class="grid-3">
+          <div class="form-group"><label>Firma / Empresa:</label><input type="text" id="nuevo_campo_firma" list="firmas_datalist"></div>
+          <div class="form-group"><label>Nombre del Campo:</label><input type="text" id="nuevo_campo_nombre" placeholder="Ej: La Laguna"></div>
+          <div class="form-group"><label>Depósito Principal Asignado *:</label><select id="nuevo_campo_deposito" required onchange="verificarNuevoDepositoRapido(this)"></select></div>
+        </div>
+        <button type="button" style="background:#007bff; width:100%;" onclick="crearCampo()">Guardar Establecimiento</button>
+      </div>
+
+      <div class="grid-2" style="margin-top:15px;">
+        <div class="section-box" style="border:2px solid #28a745; background:#f8fff9; margin-top:0;">
+          <h3 style="color:#28a745; margin-top:0;">3. Alta de Cultivo</h3>
+          <div class="form-group"><label>Nombre del Cultivo:</label><input type="text" id="nuevo_cultivo_nombre" placeholder="Ej: Sorgo"></div>
+          <button type="button" style="width:100%;" onclick="crearCultivo()">Guardar Cultivo</button>
+        </div>
+        <div class="section-box" style="border:2px solid #6f42c1; background:#fbf8ff; margin-top:0;">
+          <h3 style="color:#6f42c1; margin-top:0;">4. Alta de Labor</h3>
+          <div class="form-group"><label>Nombre de la Labor:</label><input type="text" id="nueva_labor_nombre" placeholder="Ej: Rolo Picador"></div>
+          <div class="form-group"><label><input type="checkbox" id="nueva_labor_insumo" checked> <strong>¿Requiere Insumos?</strong> (Ej: Fumigación sí, Cosecha no)</label></div>
+          <button type="button" style="background:#6f42c1; width:100%;" onclick="crearLabor()">Guardar Labor</button>
+        </div>
+      </div>
+        <div class="section-box" style="border:2px solid #e83e8c; background:#fff5f8; margin-top:15px;">
+          <h3 style="color:#e83e8c; margin-top:0;">5. Alta de Lote</h3>
+          <div class="grid-3">
+            <div class="form-group"><label>Firma:</label><input type="text" id="nuevo_lote_firma" list="firmas_datalist" oninput="actualizarCamposPorFirma('nuevo_lote_firma', 'nuevo_lote_campo')"></div>
+            <div class="form-group"><label>Establecimiento (Campo) *:</label><select id="nuevo_lote_campo" required onfocus="actualizarCamposPorFirma('nuevo_lote_firma', 'nuevo_lote_campo')"><option value="">Primero seleccione firma...</option></select></div>
+            <div class="form-group"><label>Nombre del Lote *:</label><input type="text" id="nuevo_lote_nombre" placeholder="Ej: Lote 1"></div>
+          </div>
+          <div class="grid-3">
+            <div class="form-group"><label>Superficie Física (ha) *:</label><input type="number" step="0.01" id="nuevo_lote_ha" required></div>
+          </div>
+          <button type="button" style="background:#e83e8c; width:100%;" onclick="crearLote()">Guardar Lote</button>
+        </div>
+        <div id="box-alta-operador" class="section-box" style="border:2px solid #17a2b8; background:#f0f9fa; margin-top:15px;">
+          <h3 style="color:#17a2b8; margin-top:0;">👤 Crear Usuario Operador</h3>
+          <p style="font-size:12px; color:#666;">El operador podrá registrar labores en el sistema y automáticamente heredará los permisos de su cuenta cliente.</p>
+          <div class="grid-3">
+            <div class="form-group"><label>Nombre del Operador:</label><input type="text" id="nuevo_op_nombre" placeholder="Ej: Juan Pérez"></div>
+            <div class="form-group"><label>Correo Electrónico (Login) *:</label><input type="email" id="nuevo_op_email" placeholder="operador@campo.com" required></div>
+            <div class="form-group"><label>Contraseña Temporal *:</label><input type="password" id="nuevo_op_pass" placeholder="Mínimo 6 caracteres" required></div>
+          </div>
+          <button type="button" style="background:#17a2b8; width:100%;" onclick="crearOperador()">Guardar y Habilitar Operador</button>
+        </div>
+
+    </div>
+
+    <!-- PLAN DE SIEMBRAS -->
+    <div id="sec-plan-siembras" class="seccion-app hidden">
+      <h2>🗺️ Plan de Siembras (Asignación de Lotes)</h2>
+      <div class="section-box" style="border:2px solid #1e3c72;">
+        <h4 style="margin-top:0;">Asignar Cultivo y Superficie</h4>
+        <form id="formPlanSiembra" onsubmit="guardarPlanSiembra(event)">
+          <input type="hidden" id="edit_plan_id">
+          <div class="grid-3">
+            <div class="form-group"><label>Campaña:</label><select id="plan_campana" class="select-campana" required></select></div>
+            <div class="form-group"><label>Establecimiento:</label><select id="plan_campo" required onchange="cargarLotesFiltroReporte('plan_campo', 'plan_lote')"><option value="">Seleccione campo...</option></select></div>
+            <div class="form-group"><label>Lote Específico:</label><select id="plan_lote" required onchange="alSeleccionarLotePlan()"><option value="">Primero seleccione campo...</option></select></div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group"><label>Cultivo Planificado:</label><select id="plan_cultivo" required></select></div>
+            <div class="form-group"><label>Superficie Asignada (ha):</label><input type="number" step="0.01" id="plan_superficie" required></div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group"><label>Fecha Desde (Aprox):</label><input type="date" id="plan_fecha_desde" required></div>
+            <div class="form-group"><label>Fecha Hasta (Aprox):</label><input type="date" id="plan_fecha_hasta" required></div>
+          </div>
+          <button type="submit" id="btn_submit_plan" style="width:100%; background:#1e3c72;">💾 Guardar Asignación en Plan</button>
+          <button type="button" id="btn_cancel_edit_plan" class="hidden" style="width:100%; margin-top:5px; background:#6c757d;" onclick="cancelarEdicionPlan()">Cancelar Edición</button>
+        </form>
+      </div>
+      <div class="section-box" style="margin-top:15px; background:#fff;">
+        <div class="grid-3">
+          <div class="form-group"><label>Filtrar por Campaña:</label><select id="filtro_plan_campana" class="select-campana" onchange="cargarHistorialPlanSiembras()"></select></div>
+          <div class="form-group"><label>Filtro Establecimiento:</label><select id="filtro_plan_campo" onchange="cargarHistorialPlanSiembras()"><option value="">Todos</option></select></div>
+        </div>
+        
+        <div class="tabs-reportes" style="margin-top:10px;">
+           <button class="tab-btn active" id="tab-plan-1" onclick="document.getElementById('div-plan-1').style.display='block'; document.getElementById('div-plan-2').style.display='none'; this.classList.add('active'); document.getElementById('tab-plan-2').classList.remove('active');">📋 Historial de Carga</button>
+           <button class="tab-btn" id="tab-plan-2" onclick="document.getElementById('div-plan-1').style.display='none'; document.getElementById('div-plan-2').style.display='block'; this.classList.add('active'); document.getElementById('tab-plan-1').classList.remove('active'); generarMatrizPlanSiembra();">📊 Matriz Lotes x Cultivos</button>
+        </div>
+        
+        <div id="div-plan-1">
+           <div id="contenedor-historial-plan" style="overflow-x:auto; margin-top:10px;"></div>
+        </div>
+        <div id="div-plan-2" style="display:none;">
+           <div id="contenedor-matriz-plan" style="overflow-x:auto; margin-top:10px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARGA DE ORDENES (OFFLINE READY) -->
+    <div id="sec-carga-ordenes" class="seccion-app hidden">
+      <h2>Carga de Orden de Trabajo</h2>
+      <form id="ordenForm">
+        <input type="hidden" id="edit_orden_id">
+        <div class="grid-2">
+          <div class="form-group"><label>Campaña:</label><select id="orden_campana" class="select-campana" required onchange="onOrdenCampanaChange()"></select></div>
+          <div class="form-group"><label>Fecha de Labor (Ejecución):</label><input type="date" id="fecha" required onchange="cargarLotesFiltradosPorCultivo()"></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group"><label>Firma / Empresa:</label><input type="text" id="firma_select_ord" list="firmas_datalist" placeholder="Escriba firma..." oninput="actualizarCamposPorFirma('firma_select_ord', 'campo_select_ord')" required autocomplete="off"></div>
+          <div class="form-group"><label>Establecimiento (Campo):</label><select id="campo_select_ord" required onfocus="actualizarCamposPorFirma('firma_select_ord', 'campo_select_ord')" onchange="cargarLotesFiltradosPorCultivo()"><option value="">Primero seleccione Firma...</option></select></div>
+        </div>
+        <div class="grid-2" style="background:#f0f7ff; padding:12px; border-radius:6px; border:1px solid #cce5ff;">
+          <div class="form-group" style="margin-bottom:0;"><label style="color:#004085;">1. Cultivo Destino:</label><select id="cultivo_select" required onchange="cargarLotesFiltradosPorCultivo()"></select></div>
+          <div class="form-group" style="margin-bottom:0;"><label>Labor a Realizar:</label><select id="labor_select" required onchange="evaluarLaborVariable()"></select></div>
+        </div>
+        <div class="form-group" style="margin-top:15px;">
+          <label>2. Lote(s) Involucrados (Sugerencia según Plan para el Cultivo):</label>
+          <select id="lote_select_ord" multiple required onchange="actualizarDesgloseSuperficies('lote_select_ord')"></select>
+        </div>
+        
+        <div id="box_variedad_siembra" class="form-group hidden" style="background:#e8f5e9; padding:10px; border-radius:6px; border:1px solid #c8e6c9;">
+          <label style="color:#2e7d32;">Variedad / Híbrido (Opcional):</label><input type="text" id="orden_variedad" placeholder="Ej: DM 46R18">
+        </div>
+        <div id="box_prescripcion_variable
